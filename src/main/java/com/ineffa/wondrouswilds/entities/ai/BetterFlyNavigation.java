@@ -1,25 +1,25 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.pathing.BirdNavigation;
-import net.minecraft.entity.ai.pathing.Path;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.pathfinder.Path;
 
-public class BetterFlyNavigation extends BirdNavigation {
+public class BetterFlyNavigation extends FlyingPathNavigation {
 
-    public BetterFlyNavigation(MobEntity mobEntity, World world) {
+    public BetterFlyNavigation(Mob mobEntity, Level world) {
         super(mobEntity, world);
     }
 
     @Override
-    public boolean startMovingTo(double x, double y, double z, double speed) {
-        return this.startMovingAlong(this.findPathTo(x, y, z, 0), speed);
+    public boolean moveTo(double x, double y, double z, double speed) {
+        return this.moveTo(this.createPath(x, y, z, 0), speed);
     }
 
     @Override
-    public boolean startMovingTo(Entity entity, double speed) {
-        Path path = this.findPathTo(entity, 0);
-        return path != null && this.startMovingAlong(path, speed);
+    public boolean moveTo(Entity entity, double speed) {
+        Path path = this.createPath(entity, 0);
+        return path != null && this.moveTo(path, speed);
     }
 }

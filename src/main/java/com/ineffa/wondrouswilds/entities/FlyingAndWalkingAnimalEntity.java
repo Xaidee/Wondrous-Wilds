@@ -1,80 +1,85 @@
 package com.ineffa.wondrouswilds.entities;
 
 import com.ineffa.wondrouswilds.entities.ai.BetterFlyNavigation;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.Flutterer;
-import net.minecraft.entity.ai.control.FlightMoveControl;
-import net.minecraft.entity.ai.control.MoveControl;
-import net.minecraft.entity.ai.pathing.EntityNavigation;
-import net.minecraft.entity.ai.pathing.MobNavigation;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.world.World;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.control.FlyingMoveControl;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.FlyingAnimal;
+import net.minecraft.world.level.Level;
 
-public abstract class FlyingAndWalkingAnimalEntity extends AnimalEntity implements Flutterer {
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
+public abstract class FlyingAndWalkingAnimalEntity extends Animal implements FlyingAnimal {
 
     public static final String IS_FLYING_KEY = "IsFlying";
     public static final String WANTS_TO_LAND_KEY = "WantsToLand";
 
-    private static final TrackedData<Boolean> IS_FLYING = DataTracker.registerData(FlyingAndWalkingAnimalEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
-    private static final TrackedData<Boolean> WANTS_TO_LAND = DataTracker.registerData(FlyingAndWalkingAnimalEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> IS_FLYING = SynchedEntityData.defineId(FlyingAndWalkingAnimalEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> WANTS_TO_LAND = SynchedEntityData.defineId(FlyingAndWalkingAnimalEntity.class, EntityDataSerializers.BOOLEAN);
 
-    private final FlightMoveControl airMoveControl;
+    private final FlyingMoveControl airMoveControl;
     private final MoveControl landMoveControl;
 
     private final BetterFlyNavigation flyNavigation;
-    private final MobNavigation landNavigation;
+    private final GroundPathNavigation landNavigation;
 
-    public FlyingAndWalkingAnimalEntity(EntityType<? extends FlyingAndWalkingAnimalEntity> entityType, World world) {
+    public FlyingAndWalkingAnimalEntity(EntityType<? extends FlyingAndWalkingAnimalEntity> entityType, Level world) {
         super(entityType, world);
 
         BetterFlyNavigation flyNavigation = new BetterFlyNavigation(this, world);
-        flyNavigation.setCanPathThroughDoors(false);
-        flyNavigation.setCanEnterOpenDoors(true);
-        flyNavigation.setCanSwim(false);
+        flyNavigation.setCanOpenDoors(false);
+        flyNavigation.setCanPassDoors(true);
+        flyNavigation.setCanFloat(false);
         this.flyNavigation = flyNavigation;
-        this.landNavigation = new MobNavigation(this, world);
+        this.landNavigation = new GroundPathNavigation(this, world);
 
-        this.airMoveControl = new FlightMoveControl(this, 20, true);
+        this.airMoveControl = new FlyingMoveControl(this, 20, true);
         this.landMoveControl = new MoveControl(this);
     }
 
     @Override
-    protected EntityNavigation createNavigation(World world) {
+    protected PathNavigation createNavigation(Level world) {
         if (this.isFlying()) {
             BetterFlyNavigation flyNavigation = new BetterFlyNavigation(this, world);
-            flyNavigation.setCanPathThroughDoors(false);
-            flyNavigation.setCanEnterOpenDoors(true);
-            flyNavigation.setCanSwim(false);
+            flyNavigation.setCanOpenDoors(false);
+            flyNavigation.setCanPassDoors(true);
+            flyNavigation.setCanFloat(false);
 
             return flyNavigation;
         }
 
-        return new MobNavigation(this, world);
+        return new GroundPathNavigation(this, world);
     }
 
     @Override
-    protected void initDataTracker() {
-        super.initDataTracker();
+    protected void defineSynchedData() {
+        super.defineSynchedData();
 
-        this.dataTracker.startTracking(IS_FLYING, false);
-        this.dataTracker.startTracking(WANTS_TO_LAND, false);
+        this.entityData.define(IS_FLYING, false);
+        this.entityData.define(WANTS_TO_LAND, false);
     }
 
     @Override
-    public void writeCustomDataToNbt(NbtCompound nbt) {
-        super.writeCustomDataToNbt(nbt);
+    public void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
 
         nbt.putBoolean(IS_FLYING_KEY, this.isFlying());
         nbt.putBoolean(WANTS_TO_LAND_KEY, this.wantsToLand());
     }
 
     @Override
-    public void readCustomDataFromNbt(NbtCompound nbt) {
-        super.readCustomDataFromNbt(nbt);
+    public void readAdditionalSaveData(CompoundTag nbt) {
+        super.readAdditionalSaveData(nbt);
 
         boolean isFlying = nbt.getBoolean(IS_FLYING_KEY);
         if (this.isFlying() != isFlying) this.setFlying(isFlying);
@@ -82,12 +87,12 @@ public abstract class FlyingAndWalkingAnimalEntity extends AnimalEntity implemen
         this.setWantsToLand(nbt.getBoolean(WANTS_TO_LAND_KEY));
     }
 
-    public boolean isFlying() {
-        return this.dataTracker.get(IS_FLYING);
+    public boolean isAiFlying() {
+        return this.entityData.get(IS_FLYING);
     }
 
     public void setIsFlying(boolean isFlying) {
-        this.dataTracker.set(IS_FLYING, isFlying);
+        this.entityData.set(IS_FLYING, isFlying);
     }
 
     public void setFlying(boolean flying) {
@@ -103,20 +108,20 @@ public abstract class FlyingAndWalkingAnimalEntity extends AnimalEntity implemen
     }
 
     public boolean wantsToLand() {
-        return this.dataTracker.get(WANTS_TO_LAND);
+        return this.entityData.get(WANTS_TO_LAND);
     }
 
     public void setWantsToLand(boolean wantsToLand) {
-        this.dataTracker.set(WANTS_TO_LAND, wantsToLand);
+        this.entityData.set(WANTS_TO_LAND, wantsToLand);
     }
 
     @Override
-    public boolean isInAir() {
+    public boolean isFlying() {
         return !this.onGround;
     }
 
     @Override
-    protected boolean hasWings() {
-        return this.isFlying();
+    protected boolean isFlapping() {
+        return this.isAiFlying();
     }
 }

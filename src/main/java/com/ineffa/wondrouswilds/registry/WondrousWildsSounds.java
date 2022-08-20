@@ -1,9 +1,9 @@
 package com.ineffa.wondrouswilds.registry;
 
 import com.ineffa.wondrouswilds.WondrousWilds;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
 
 public class WondrousWildsSounds {
 
@@ -11,7 +11,7 @@ public class WondrousWildsSounds {
     public static final SoundEvent WOODPECKER_DRUM = createSoundEvent("entity.woodpecker.drum");
 
     private static SoundEvent createSoundEvent(String name) {
-        Identifier id = new Identifier(WondrousWilds.MOD_ID, name);
+        ResourceLocation id = new ResourceLocation(WondrousWilds.MOD_ID, name);
         return Registry.register(Registry.SOUND_EVENT, id, new SoundEvent(id));
     }
 

@@ -56,7 +56,7 @@ public class FireflyLandOnEntityGoal extends Goal {
 
     @Override
     public void tick() {
-        this.firefly.getNavigation().startMovingTo(this.entityToLandOn, 1.0D);
+        this.firefly.getNavigation().moveTo(this.entityToLandOn, 1.0D);
 
         if (this.firefly.distanceTo(this.entityToLandOn) <= 1.0F) {
             this.firefly.setLandOnEntityCooldown(2400);

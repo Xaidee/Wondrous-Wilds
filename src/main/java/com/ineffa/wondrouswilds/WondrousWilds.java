@@ -1,33 +1,29 @@
 package com.ineffa.wondrouswilds;
 
 import com.ineffa.wondrouswilds.registry.*;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.biome.v1.*;
-import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnGroup;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.world.biome.BiomeKeys;
-import net.minecraft.world.biome.SpawnSettings;
-import net.minecraft.world.gen.GenerationStep;
-import net.minecraft.world.gen.feature.VegetationPlacedFeatures;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.fml.common.Mod;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.bernie.example.GeckoLibMod;
 import software.bernie.geckolib3.GeckoLib;
 
-import java.util.function.Predicate;
-
-public class WondrousWilds implements ModInitializer {
+@Mod(WondrousWilds.MOD_ID)
+public class WondrousWilds {
 	public static final String MOD_ID = "wondrouswilds";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	public static final ItemGroup WONDROUS_WILDS_ITEM_GROUP = FabricItemGroupBuilder.build(new Identifier(WondrousWilds.MOD_ID, "wondrous_wilds"), () -> new ItemStack(WondrousWildsItems.LOVIFIER));
+	public static final CreativeModeTab WONDROUS_WILDS_ITEM_GROUP = new CreativeModeTab("wondrous_wilds") {
+		@Override
+		public @NotNull ItemStack makeIcon() {
+			return new ItemStack(Blocks.DIRT);
+		}
+	};//FabricItemGroupBuilder.build(new Identifier(WondrousWilds.MOD_ID, "wondrous_wilds"), () -> new ItemStack(WondrousWildsItems.LOVIFIER));
 
-	@Override
-	public void onInitialize() {
+	public WondrousWilds() {
 		LOGGER.info("Wondrous Wilds initializing!");
 
 		GeckoLibMod.DISABLE_IN_DEV = true;
@@ -41,10 +37,10 @@ public class WondrousWilds implements ModInitializer {
 
 		WondrousWildsFeatures.initialize();
 
-		upgradeBirchForests();
+		//upgradeBirchForests();
 	}
 
-	private static void upgradeBirchForests() {
+	/*private static void upgradeBirchForests() {
 		BiomeModification birchForestModifier = BiomeModifications.create(new Identifier(MOD_ID, "birch_forest_modifier"));
 
 		final Predicate<BiomeSelectionContext> BIRCH_FOREST = BiomeSelectors.includeByKey(BiomeKeys.BIRCH_FOREST);
@@ -90,5 +86,5 @@ public class WondrousWilds implements ModInitializer {
 
 			context.getEffects().setGrassColor(12232267);
 		});
-	}
+	}*/
 }
