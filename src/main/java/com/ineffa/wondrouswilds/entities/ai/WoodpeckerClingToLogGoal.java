@@ -2,11 +2,11 @@ package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.WoodpeckerEntity;
 import com.ineffa.wondrouswilds.registry.WondrousWildsTags;
-import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
+import net.minecraft.world.level.LevelReader;
 
-public class WoodpeckerClingToLogGoal extends MoveToTargetPosGoal {
+public class WoodpeckerClingToLogGoal extends MoveToBlockGoal {
 
     private final WoodpeckerEntity woodpecker;
 
@@ -21,8 +21,8 @@ public class WoodpeckerClingToLogGoal extends MoveToTargetPosGoal {
     }
 
     @Override
-    public boolean canStart() {
-        return this.woodpecker.getRandom().nextInt(200) == 0 && this.woodpecker.canWander() && this.findTargetPos();
+    public boolean canUse() {
+        return this.woodpecker.getRandom().nextInt(200) == 0 && this.woodpecker.canWander() && this.findNearestBlock();
     }
 
     @Override
@@ -37,28 +37,28 @@ public class WoodpeckerClingToLogGoal extends MoveToTargetPosGoal {
     }
 
     @Override
-    public boolean shouldContinue() {
-        return !this.shouldStop && this.woodpecker.canWander() && this.isTargetPos(this.woodpecker.getWorld(), this.targetPos);
+    public boolean canContinueToUse() {
+        return !this.shouldStop && this.woodpecker.canWander() && this.isValidTarget(this.woodpecker.getLevel(), this.blockPos);
     }
 
     @Override
     public void stop() {
         super.stop();
 
-        if (this.hasReached()) this.woodpecker.tryClingingTo(this.getTargetPos());
+        if (this.isReachedTarget()) this.woodpecker.tryClingingTo(this.getMoveToTarget());
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        if (this.hasReached()) {
+        if (this.isReachedTarget()) {
             this.shouldStop = true;
             this.ticksUnableToReach = 0;
             return;
         }
 
-        if (this.woodpecker.getNavigation().isIdle()) {
+        if (this.woodpecker.getNavigation().isDone()) {
             if (this.ticksUnableToReach >= 100) {
                 if (this.woodpecker.isFlying()) {
                     this.woodpecker.setFlying(true);
@@ -80,17 +80,17 @@ public class WoodpeckerClingToLogGoal extends MoveToTargetPosGoal {
     }
 
     @Override
-    protected boolean isTargetPos(WorldView world, BlockPos pos) {
-        return !world.getBlockState(pos).isIn(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH) && this.woodpecker.canClingToPos(pos, true, null);
+    protected boolean isValidTarget(LevelReader world, BlockPos pos) {
+        return !world.getBlockState(pos).is(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH) && this.woodpecker.canClingToPos(pos, true, null);
     }
 
     @Override
-    protected BlockPos getTargetPos() {
-        return this.targetPos;
+    protected BlockPos getMoveToTarget() {
+        return this.blockPos;
     }
 
     @Override
-    public double getDesiredDistanceToTarget() {
+    public double acceptedDistance() {
         return 1.5D;
     }
 }

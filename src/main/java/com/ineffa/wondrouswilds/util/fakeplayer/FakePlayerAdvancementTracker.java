@@ -1,47 +1,47 @@
 package com.ineffa.wondrouswilds.util.fakeplayer;
 
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.advancement.Advancement;
-import net.minecraft.advancement.AdvancementProgress;
-import net.minecraft.advancement.PlayerAdvancementTracker;
-import net.minecraft.server.ServerAdvancementLoader;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.server.ServerAdvancementManager;
+import net.minecraft.server.level.ServerPlayer;
 
 import javax.annotation.Nullable;
 
-public class FakePlayerAdvancementTracker extends PlayerAdvancementTracker {
+public class FakePlayerAdvancementTracker extends PlayerAdvancements {
 
-    public FakePlayerAdvancementTracker(ServerPlayerEntity owner) {
-        super(null, null, owner.getServer().getAdvancementLoader(), FabricLoader.getInstance().getConfigDir().toFile(), owner);
+    public FakePlayerAdvancementTracker(ServerPlayer owner) {
+        super(null, null, owner.getServer().getAdvancements(), Minecraft.getInstance().gameDirectory, owner);
     }
 
     @Override
-    public void clearCriteria() {}
+    public void stopListening() {}
 
     @Override
-    public void reload(ServerAdvancementLoader advancementLoader) {}
+    public void reload(ServerAdvancementManager advancementLoader) {}
 
     @Override
     public void save() {}
 
     @Override
-    public boolean grantCriterion(Advancement advancement, String criterionName) {
+    public boolean award(Advancement advancement, String criterionName) {
         return false;
     }
 
     @Override
-    public boolean revokeCriterion(Advancement advancement, String criterionName) {
+    public boolean revoke(Advancement advancement, String criterionName) {
         return false;
     }
 
     @Override
-    public void sendUpdate(ServerPlayerEntity player) {}
+    public void flushDirty(ServerPlayer player) {}
 
     @Override
-    public void setDisplayTab(@Nullable Advancement advancement) {}
+    public void setSelectedTab(@Nullable Advancement advancement) {}
 
     @Override
-    public AdvancementProgress getProgress(Advancement advancement) {
+    public AdvancementProgress getOrStartProgress(Advancement advancement) {
         return new AdvancementProgress();
     }
 }

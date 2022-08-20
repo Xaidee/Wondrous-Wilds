@@ -1,44 +1,44 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.FireflyEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.ai.control.BodyControl;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.control.BodyRotationControl;
 
-public class RelaxedBodyControl extends BodyControl {
+public class RelaxedBodyControl extends BodyRotationControl {
 
-    private final MobEntity entity;
+    private final Mob entity;
     private static final float BODY_KEEP_UP_THRESHOLD = 15.0F;
     private float lastHeadYaw;
 
-    public RelaxedBodyControl(MobEntity entity) {
+    public RelaxedBodyControl(Mob entity) {
         super(entity);
         this.entity = entity;
     }
 
     @Override
-    public void tick() {
+    public void clientTick() {
         if (this.isMoving()) {
-            this.entity.bodyYaw = this.entity.getYaw();
+            this.entity.yBodyRot = this.entity.getYRot();
             this.keepUpHead();
-            this.lastHeadYaw = this.entity.headYaw;
+            this.lastHeadYaw = this.entity.yHeadRot;
             return;
         }
         if (this.isIndependent()) {
-            if (Math.abs(this.entity.headYaw - this.lastHeadYaw) > BODY_KEEP_UP_THRESHOLD) {
-                this.lastHeadYaw = this.entity.headYaw;
+            if (Math.abs(this.entity.yHeadRot - this.lastHeadYaw) > BODY_KEEP_UP_THRESHOLD) {
+                this.lastHeadYaw = this.entity.yHeadRot;
                 this.keepUpBody();
             }
         }
     }
 
     private void keepUpBody() {
-        this.entity.bodyYaw = MathHelper.clampAngle(this.entity.bodyYaw, this.entity.headYaw, this.entity.getMaxHeadRotation());
+        this.entity.yBodyRot = Mth.clampedLerp(this.entity.yBodyRot, this.entity.yHeadRot, this.entity.getMaxHeadYRot());
     }
 
     private void keepUpHead() {
-        this.entity.headYaw = MathHelper.clampAngle(this.entity.headYaw, this.entity.bodyYaw, this.entity.getMaxHeadRotation());
+        this.entity.yHeadRot = Mth.clampedLerp(this.entity.yHeadRot, this.entity.yBodyRot, this.entity.getMaxHeadYRot());
     }
 
     private boolean isIndependent() {
@@ -46,12 +46,12 @@ public class RelaxedBodyControl extends BodyControl {
 
         if (firstPassenger instanceof FireflyEntity) return true;
 
-        return !(firstPassenger instanceof MobEntity);
+        return !(firstPassenger instanceof Mob);
     }
 
     private boolean isMoving() {
         double e;
-        double d = this.entity.getX() - this.entity.prevX;
-        return d * d + (e = this.entity.getZ() - this.entity.prevZ) * e > 2.500000277905201E-7;
+        double d = this.entity.getX() - this.entity.xOld;
+        return d * d + (e = this.entity.getZ() - this.entity.zOld) * e > 2.500000277905201E-7;
     }
 }

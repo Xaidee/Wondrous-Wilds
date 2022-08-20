@@ -1,8 +1,8 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.WoodpeckerEntity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 
 public class WoodpeckerAttackGoal extends MeleeAttackGoal {
 
@@ -22,12 +22,12 @@ public class WoodpeckerAttackGoal extends MeleeAttackGoal {
     }
 
     @Override
-    protected void attack(LivingEntity target, double squaredDistance) {
+    protected void checkAndPerformAttack(LivingEntity target, double squaredDistance) {
         if (this.woodpecker.isPecking()) return;
 
-        double maxDistance = this.getSquaredMaxAttackDistance(target);
-        if (squaredDistance <= maxDistance && this.isCooledDown()) {
-            this.resetCooldown();
+        double maxDistance = this.getAttackReachSqr(target);
+        if (squaredDistance <= maxDistance && this.isTimeToAttack()) {
+            this.resetAttackCooldown();
 
             this.woodpecker.startPeckChain(1);
         }

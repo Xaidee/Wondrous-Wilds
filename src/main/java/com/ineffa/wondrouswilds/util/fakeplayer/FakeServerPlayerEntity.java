@@ -1,19 +1,19 @@
 package com.ineffa.wondrouswilds.util.fakeplayer;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.advancement.PlayerAdvancementTracker;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.stat.ServerStatHandler;
-import net.minecraft.stat.Stat;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.ServerStatsCounter;
+import net.minecraft.stats.Stat;
 
-public class FakeServerPlayerEntity extends ServerPlayerEntity {
+public class FakeServerPlayerEntity extends ServerPlayer {
 
     private final FakePlayerAdvancementTracker fakeAdvancementTracker;
     private final FakeServerStatHandler fakeServerStatHandler;
 
-    public FakeServerPlayerEntity(ServerWorld world, GameProfile fakeProfile) {
+    public FakeServerPlayerEntity(ServerLevel world, GameProfile fakeProfile) {
         super(world.getServer(), world, fakeProfile, null);
 
         this.fakeAdvancementTracker = new FakePlayerAdvancementTracker(this);
@@ -21,20 +21,20 @@ public class FakeServerPlayerEntity extends ServerPlayerEntity {
     }
 
     @Override
-    public PlayerAdvancementTracker getAdvancementTracker() {
+    public PlayerAdvancements getAdvancements() {
         return this.fakeAdvancementTracker;
     }
 
     @Override
-    public ServerStatHandler getStatHandler() {
+    public ServerStatsCounter getStats() {
         return this.fakeServerStatHandler;
     }
 
     @Override
-    public void increaseStat(Identifier stat, int amount) {}
+    public void awardStat(ResourceLocation stat, int amount) {}
 
     @Override
-    public void increaseStat(Stat<?> stat, int amount) {}
+    public void awardStat(Stat<?> stat, int amount) {}
 
     @Override
     public void resetStat(Stat<?> stat) {}

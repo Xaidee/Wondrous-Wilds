@@ -1,11 +1,11 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.WoodpeckerEntity;
-import net.minecraft.entity.ai.AboveGroundTargeting;
-import net.minecraft.entity.ai.NoPenaltySolidTargeting;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.util.AirAndWaterRandomPos;
+import net.minecraft.world.entity.ai.util.HoverRandomPos;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -16,27 +16,27 @@ public class WoodpeckerWanderFlyingGoal extends Goal {
     private final WoodpeckerEntity woodpecker;
 
     public WoodpeckerWanderFlyingGoal(WoodpeckerEntity woodpeckerEntity) {
-        this.setControls(EnumSet.of(Goal.Control.MOVE));
+        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
 
         this.woodpecker = woodpeckerEntity;
     }
 
     @Override
-    public boolean canStart() {
+    public boolean canUse() {
         if (!this.woodpecker.isFlying() || !this.woodpecker.canWander()) return false;
 
-        return this.woodpecker.getNavigation().isIdle() && this.woodpecker.getRandom().nextInt(10) == 0;
+        return this.woodpecker.getNavigation().isDone() && this.woodpecker.getRandom().nextInt(10) == 0;
     }
 
     @Override
-    public boolean shouldContinue() {
-        return this.woodpecker.isFlying() && this.woodpecker.canWander() && this.woodpecker.getNavigation().isFollowingPath();
+    public boolean canContinueToUse() {
+        return this.woodpecker.isFlying() && this.woodpecker.canWander() && this.woodpecker.getNavigation().isInProgress();
     }
 
     @Override
     public void start() {
-        Vec3d vec3d = this.getRandomLocation();
-        if (vec3d != null) this.woodpecker.getNavigation().startMovingAlong(this.woodpecker.getNavigation().findPathTo(new BlockPos(vec3d), 1), 1.0D);
+        Vec3 vec3 = this.getRandomLocation();
+        if (vec3 != null) this.woodpecker.getNavigation().moveTo(this.woodpecker.getNavigation().createPath(new BlockPos(vec3), 1), 1.0D);
     }
 
     @Override
@@ -48,14 +48,14 @@ public class WoodpeckerWanderFlyingGoal extends Goal {
     }
 
     @Nullable
-    private Vec3d getRandomLocation() {
-        boolean moveTowardsNest = this.woodpecker.hasNestPos() && !Objects.requireNonNull(this.woodpecker.getNestPos()).isWithinDistance(this.woodpecker.getPos(), this.woodpecker.getWanderRadiusFromNest());
+    private Vec3 getRandomLocation() {
+        boolean moveTowardsNest = this.woodpecker.hasNestPos() && !Objects.requireNonNull(this.woodpecker.getNestPos()).closerThan(this.woodpecker.getOnPos(), this.woodpecker.getWanderRadiusFromNest());
 
-        Vec3d direction = moveTowardsNest ? Vec3d.ofCenter(this.woodpecker.getNestPos()).subtract(this.woodpecker.getPos()).normalize() : this.woodpecker.getRotationVec(0.0F);
+        Vec3 direction = moveTowardsNest ? Vec3.atCenterOf(this.woodpecker.getNestPos()).subtract(this.woodpecker.position()).normalize() : this.woodpecker.getViewVector(0.0F);
 
-        Vec3d groundLocation = AboveGroundTargeting.find(this.woodpecker, 16, 8, direction.x, direction.z, 1.5707964F, this.woodpecker.wantsToLand() ? 1 : 6, 1);
+        Vec3 groundLocation = HoverRandomPos.getPos(this.woodpecker, 16, 8, direction.x, direction.z, 1.5707964F, this.woodpecker.wantsToLand() ? 1 : 6, 1);
         if (groundLocation != null) return groundLocation;
 
-        return NoPenaltySolidTargeting.find(this.woodpecker, 16, 8, -2, direction.x, direction.z, 1.5707963705062866D);
+        return AirAndWaterRandomPos.getPos(this.woodpecker, 16, 8, -2, direction.x, direction.z, 1.5707963705062866D);
     }
 }

@@ -1,41 +1,41 @@
 package com.ineffa.wondrouswilds.util.fakeplayer;
 
 import com.mojang.datafixers.DataFixer;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.stat.ServerStatHandler;
-import net.minecraft.stat.Stat;
-import net.minecraft.stat.StatType;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.ServerStatsCounter;
+import net.minecraft.stats.Stat;
+import net.minecraft.stats.StatType;
+import net.minecraft.world.entity.player.Player;
 
-public class FakeServerStatHandler extends ServerStatHandler {
+public class FakeServerStatHandler extends ServerStatsCounter {
 
     public FakeServerStatHandler(MinecraftServer server) {
-        super(server, FabricLoader.getInstance().getConfigDir().toFile());
+        super(server, Minecraft.getInstance().gameDirectory);
     }
 
     @Override
     public void save() {}
 
     @Override
-    public void increaseStat(PlayerEntity player, Stat<?> stat, int value) {}
+    public void increment(Player player, Stat<?> stat, int value) {}
 
     @Override
-    public void setStat(PlayerEntity player, Stat<?> stat, int value) {}
+    public void setValue(Player player, Stat<?> stat, int value) {}
 
     @Override
-    public <T> int getStat(StatType<T> type, T stat) {
+    public <T> int getValue(StatType<T> type, T stat) {
         return 0;
     }
 
     @Override
-    public int getStat(Stat<?> stat) {
+    public int getValue(Stat<?> stat) {
         return 0;
     }
 
     @Override
-    public void parse(DataFixer dataFixer, String json) {}
+    public void parseLocal(DataFixer dataFixer, String json) {}
 
     /*@Override
     protected String asString() {
@@ -43,8 +43,8 @@ public class FakeServerStatHandler extends ServerStatHandler {
     }*/
 
     @Override
-    public void updateStatSet() {}
+    public void markAllDirty() {}
 
     @Override
-    public void sendStats(ServerPlayerEntity player) {}
+    public void sendStats(ServerPlayer player) {}
 }

@@ -1,6 +1,6 @@
 package com.ineffa.wondrouswilds.entities;
 
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public interface TreeHollowNester {
 
@@ -19,11 +19,11 @@ public interface TreeHollowNester {
     void setNestPos(BlockPos pos);
 
     default void clearNestPos() {
-        this.setNestPos(BlockPos.ORIGIN);
+        this.setNestPos(BlockPos.ZERO);
     }
 
     default boolean hasNestPos() {
-        return !(this.getNestPos() == null || this.getNestPos() == BlockPos.ORIGIN);
+        return !(this.getNestPos() == null || this.getNestPos() == BlockPos.ZERO);
     }
 
     default boolean shouldFindNest() {

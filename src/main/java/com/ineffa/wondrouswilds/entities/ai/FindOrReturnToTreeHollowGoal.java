@@ -3,16 +3,18 @@ package com.ineffa.wondrouswilds.entities.ai;
 import com.ineffa.wondrouswilds.blocks.entity.TreeHollowBlockEntity;
 import com.ineffa.wondrouswilds.entities.FlyingAndWalkingAnimalEntity;
 import com.ineffa.wondrouswilds.entities.TreeHollowNester;
-import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
+import net.minecraft.world.level.LevelReader;
 
-public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
+import java.util.logging.Level;
+
+public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
 
     private final TreeHollowNester nester;
-    private final MobEntity nesterEntity;
+    private final Mob nesterEntity;
 
     private int nextCheckDelay = 40;
     private boolean shouldStop = false;
@@ -20,14 +22,14 @@ public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
     private boolean lookingForNest = false;
 
     public FindOrReturnToTreeHollowGoal(TreeHollowNester nester, double speed, int range, int maxYDifference) {
-        super((PathAwareEntity) nester, speed, range, maxYDifference);
+        super((PathfinderMob) nester, speed, range, maxYDifference);
 
         this.nester = nester;
-        this.nesterEntity = (MobEntity) nester;
+        this.nesterEntity = (Mob) nester;
     }
 
     @Override
-    public boolean canStart() {
+    public boolean canUse() {
         if (this.nextCheckDelay > 0) {
             --this.nextCheckDelay;
             return false;
@@ -38,7 +40,7 @@ public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
 
         this.lookingForNest = this.nester.shouldFindNest();
 
-        return this.findTargetPos();
+        return this.findNearestBlock();
     }
 
     @Override
@@ -51,8 +53,8 @@ public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
     }
 
     @Override
-    public boolean shouldContinue() {
-        return !this.shouldStop && this.isTargetPos(this.nesterEntity.getWorld(), this.targetPos);
+    public boolean canContinueToUse() {
+        return !this.shouldStop && this.isValidTarget(this.nesterEntity.getLevel(), this.blockPos);
     }
 
     @Override
@@ -61,9 +63,9 @@ public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
 
         this.nextCheckDelay = 40;
 
-        if (!(this.nesterEntity.getWorld().getBlockEntity(this.getTargetPos()) instanceof TreeHollowBlockEntity treeHollow)) return;
+        if (!(this.nesterEntity.getLevel().getBlockEntity(this.getMoveToTarget()) instanceof TreeHollowBlockEntity treeHollow)) return;
 
-        if (this.hasReached()) {
+        if (this.isReachedTarget()) {
             if (!treeHollow.tryAddingInhabitant(this.nester)) {
                 this.nester.setCannotInhabitNestTicks(this.nester.getMinTicksOutOfNest());
                 this.nester.clearNestPos();
@@ -75,33 +77,33 @@ public class FindOrReturnToTreeHollowGoal extends MoveToTargetPosGoal {
     public void tick() {
         super.tick();
 
-        if (this.hasReached()) this.shouldStop = true;
+        if (this.isReachedTarget()) this.shouldStop = true;
     }
 
     @Override
-    protected boolean isTargetPos(WorldView world, BlockPos pos) {
+    protected boolean isValidTarget(LevelReader world, BlockPos pos) {
         if (!this.lookingForNest) return true;
 
         return world.getBlockEntity(pos) instanceof TreeHollowBlockEntity;
     }
 
     @Override
-    protected BlockPos getTargetPos() {
-        return this.targetPos;
+    protected BlockPos getMoveToTarget() {
+        return this.blockPos;
     }
 
     @Override
-    protected boolean findTargetPos() {
+    protected boolean findNearestBlock() {
         if (!this.lookingForNest) {
-            this.targetPos = this.nester.getNestPos();
+            this.blockPos = this.nester.getNestPos();
             return true;
         }
 
-        return super.findTargetPos();
+        return super.findNearestBlock();
     }
 
     @Override
-    public double getDesiredDistanceToTarget() {
+    public double acceptedDistance() {
         return 1.5D;
     }
 }
