@@ -39,6 +39,6 @@ public class WondrousWildsTags {
     }
 
     private static TagKey<Biome> createBiomeTag(String name) {
-        return BiomeTags.create(new ResourceLocation(WondrousWilds.MOD_ID, name));
+        return BiomeTags.create(new ResourceLocation(WondrousWilds.MOD_ID, name).toString());
     }
 }
