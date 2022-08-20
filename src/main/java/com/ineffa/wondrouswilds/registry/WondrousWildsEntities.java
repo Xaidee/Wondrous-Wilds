@@ -6,6 +6,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
+
 
 public class WondrousWildsEntities {
 
@@ -15,6 +17,7 @@ public class WondrousWildsEntities {
             FireflyEntity::new,
             MobCategory.WATER_AMBIENT)
                     .sized(0.1875F, 0.25F)
+                    .build("firefly")
             /*FabricEntityTypeBuilder.createMob()
             .entityFactory(FireflyEntity::new)
             .defaultAttributes(FireflyEntity::createFireflyAttributes)
@@ -31,13 +34,13 @@ public class WondrousWildsEntities {
             .spawnGroup(SpawnGroup.CREATURE)
             .spawnRestriction(SpawnRestriction.Location.ON_GROUND, Heightmap.Type.MOTION_BLOCKING, AnimalEntity::isValidNaturalSpawn)
             .build()
-    );
+    );*/
 
     public static void initialize() {
-        BiomeModifications.addSpawn(context -> context.hasTag(ConventionalBiomeTags.IN_OVERWORLD), SpawnGroup.WATER_AMBIENT, FIREFLY, 100, 3, 6);
+        //ForgeBiomeModifiers.AddSpawnsBiomeModifier.singleSpawn(ForgeRegistries.BIOMES.get).addSpawn(context -> context.hasTag(ConventionalBiomeTags.IN_OVERWORLD), SpawnGroup.WATER_AMBIENT, FIREFLY, 100, 3, 6);
     }
 
-    public static final Map<EntityType<?>, Integer> DEFAULT_NESTER_CAPACITY_WEIGHTS = new ImmutableMap.Builder<EntityType<?>, Integer>()
+    /*public static final Map<EntityType<?>, Integer> DEFAULT_NESTER_CAPACITY_WEIGHTS = new ImmutableMap.Builder<EntityType<?>, Integer>()
             .put(WOODPECKER, 55)
             .build();*/
 }

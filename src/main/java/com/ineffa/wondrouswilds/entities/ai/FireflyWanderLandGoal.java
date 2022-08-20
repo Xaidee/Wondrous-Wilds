@@ -1,9 +1,9 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.FireflyEntity;
-import net.minecraft.entity.ai.goal.WanderAroundFarGoal;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 
-public class FireflyWanderLandGoal extends WanderAroundFarGoal {
+public class FireflyWanderLandGoal extends RandomStrollGoal {
 
     private final FireflyEntity firefly;
 
@@ -14,15 +14,15 @@ public class FireflyWanderLandGoal extends WanderAroundFarGoal {
     }
 
     @Override
-    public boolean canStart() {
+    public boolean canUse() {
         if (this.firefly.isFlying() || !this.firefly.canWander()) return false;
 
-        return super.canStart();
+        return super.canUse();
     }
 
     @Override
-    public boolean shouldContinue() {
-        return !this.firefly.isFlying() && super.shouldContinue();
+    public boolean canContinueToUse() {
+        return !this.firefly.isFlying() && super.canContinueToUse();
     }
 
     @Override

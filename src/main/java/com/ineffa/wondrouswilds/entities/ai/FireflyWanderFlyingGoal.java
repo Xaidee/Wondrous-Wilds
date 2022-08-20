@@ -1,11 +1,11 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.FireflyEntity;
-import net.minecraft.entity.ai.AboveGroundTargeting;
-import net.minecraft.entity.ai.NoPenaltySolidTargeting;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.util.AirAndWaterRandomPos;
+import net.minecraft.world.entity.ai.util.HoverRandomPos;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -15,27 +15,27 @@ public class FireflyWanderFlyingGoal extends Goal {
     private final FireflyEntity firefly;
 
     public FireflyWanderFlyingGoal(FireflyEntity fireflyEntity) {
-        this.setControls(EnumSet.of(Goal.Control.MOVE));
+        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
 
         this.firefly = fireflyEntity;
     }
 
     @Override
-    public boolean canStart() {
+    public boolean canUse() {
         if (!this.firefly.isFlying() || !this.firefly.canWander()) return false;
 
-        return this.firefly.getNavigation().isIdle() && this.firefly.getRandom().nextInt(10) == 0;
+        return this.firefly.getNavigation().isDone() && this.firefly.getRandom().nextInt(10) == 0;
     }
 
     @Override
-    public boolean shouldContinue() {
-        return this.firefly.isFlying() && this.firefly.getNavigation().isFollowingPath();
+    public boolean canContinueToUse() {
+        return this.firefly.isFlying() && this.firefly.getNavigation().isInProgress();
     }
 
     @Override
     public void start() {
-        Vec3d vec3d = this.getRandomLocation();
-        if (vec3d != null) this.firefly.getNavigation().startMovingAlong(this.firefly.getNavigation().findPathTo(new BlockPos(vec3d), 1), 1.0D);
+        Vec3 vec3 = this.getRandomLocation();
+        if (vec3 != null) this.firefly.getNavigation().moveTo(this.firefly.getNavigation().createPath(new BlockPos(vec3), 1), 1.0D);
     }
 
     @Override
@@ -47,12 +47,12 @@ public class FireflyWanderFlyingGoal extends Goal {
     }
 
     @Nullable
-    private Vec3d getRandomLocation() {
-        Vec3d vec3d = this.firefly.getRotationVec(0.0F);
-        Vec3d vec3d3 = AboveGroundTargeting.find(this.firefly, 8, 8, vec3d.x, vec3d.z, 1.5707964F, this.firefly.wantsToLand() ? 1 : 6, 1);
+    private Vec3 getRandomLocation() {
+        Vec3 vec3d = this.firefly.getViewVector(0.0F);
+        Vec3 vec3d3 = HoverRandomPos.getPos(this.firefly, 8, 8, vec3d.x, vec3d.z, 1.5707964F, this.firefly.wantsToLand() ? 1 : 6, 1);
 
         if (vec3d3 != null) return vec3d3;
 
-        return NoPenaltySolidTargeting.find(this.firefly, 16, 8, -2, vec3d.x, vec3d.z, 1.5707963705062866D);
+        return AirAndWaterRandomPos.getPos(this.firefly, 16, 8, -2, vec3d.x, vec3d.z, 1.5707963705062866D);
     }
 }

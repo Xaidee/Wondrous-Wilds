@@ -2,35 +2,37 @@ package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.FireflyEntity;
 import com.ineffa.wondrouswilds.registry.WondrousWildsTags;
-import net.minecraft.block.Block;
-import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldEvents;
-import net.minecraft.world.WorldView;
+import net.minecraft.MethodsReturnNonnullByDefault;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LevelEvent;
 
-public class FireflyHideGoal extends MoveToTargetPosGoal {
+@MethodsReturnNonnullByDefault
+public class FireflyHideGoal extends MoveToBlockGoal {
 
     public FireflyHideGoal(FireflyEntity mob, double speed, int range, int maxYDifference) {
         super(mob, speed, range, maxYDifference);
     }
 
     @Override
-    public boolean canStart() {
+    public boolean canUse() {
         if (!((FireflyEntity) this.mob).shouldHide()) return false;
 
-        return this.findTargetPos();
+        return this.findNearestBlock();
     }
 
     @Override
-    public boolean shouldContinue() {
-        return this.isTargetPos(this.mob.getWorld(), this.targetPos);
+    public boolean canContinueToUse() {
+        return this.isValidTarget(this.mob.getLevel(), this.getMoveToTarget());
     }
 
     @Override
     public void tick() {
-        if (this.hasReached()) {
-            BlockPos pos = this.getTargetPos();
-            this.mob.getWorld().syncWorldEvent(WorldEvents.BLOCK_BROKEN, pos, Block.getRawIdFromState(this.mob.getWorld().getBlockState(pos)));
+        if (this.isReachedTarget()) {
+            BlockPos pos = this.getMoveToTarget();
+            this.mob.getLevel().levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, pos, Block.getId(this.mob.getLevel().getBlockState(pos)));
 
             this.mob.discard();
         }
@@ -43,12 +45,12 @@ public class FireflyHideGoal extends MoveToTargetPosGoal {
     }
 
     @Override
-    protected boolean isTargetPos(WorldView world, BlockPos pos) {
-        return world.getBlockState(pos).isIn(WondrousWildsTags.Blocks.FIREFLIES_HIDE_IN);
+    protected boolean isValidTarget(LevelReader world, BlockPos pos) {
+        return world.getBlockState(pos).is(WondrousWildsTags.Blocks.FIREFLIES_HIDE_IN);
     }
 
     @Override
-    protected BlockPos getTargetPos() {
-        return this.targetPos;
+    protected BlockPos getMoveToTarget() {
+        return this.blockPos;
     }
 }
