@@ -125,7 +125,7 @@ public class WoodpeckerPlayWithBlockGoal extends MoveToTargetPosGoal {
 
     @Override
     protected boolean isTargetPos(WorldView world, BlockPos pos) {
-        if (!world.getBlockState(pos).isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH)) return false;
+        if (!world.getBlockState(pos).isIn(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH)) return false;
 
         this.canClingToTarget = this.woodpecker.canClingToPos(pos, true, null);
 

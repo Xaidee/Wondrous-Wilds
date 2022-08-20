@@ -292,7 +292,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
         }
         if (!hasSolidSide) return false;
 
-        return (state.getBlock() instanceof PillarBlock && state.isIn(BlockTags.OVERWORLD_NATURAL_LOGS) && state.get(PillarBlock.AXIS).isVertical()) || state.isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH);
+        return (state.getBlock() instanceof PillarBlock && state.isIn(BlockTags.OVERWORLD_NATURAL_LOGS) && state.get(PillarBlock.AXIS).isVertical()) || state.isIn(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH);
     }
 
     public boolean canMakeNestInPos(BlockPos pos) {
@@ -301,7 +301,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
     }
 
     public boolean canInteractWithPos(BlockPos pos) {
-        return this.getWorld().getBlockState(pos).isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH);
+        return this.getWorld().getBlockState(pos).isIn(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH);
     }
 
     public boolean isMakingNest() {
@@ -594,7 +594,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                             BlockHitResult hitResult = (BlockHitResult) this.raycast(this.getPeckReach(), 0.0F, false);
                             BlockState peckState = this.getWorld().getBlockState(hitResult.getBlockPos());
 
-                            if (peckState.isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH)) {
+                            if (peckState.isIn(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH)) {
                                 WoodpeckerFakePlayer fakePlayer = new WoodpeckerFakePlayer(this);
                                 Hand hand = Hand.MAIN_HAND;
 

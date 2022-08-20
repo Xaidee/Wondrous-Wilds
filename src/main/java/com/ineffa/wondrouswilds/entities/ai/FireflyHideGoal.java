@@ -44,7 +44,7 @@ public class FireflyHideGoal extends MoveToTargetPosGoal {
 
     @Override
     protected boolean isTargetPos(WorldView world, BlockPos pos) {
-        return world.getBlockState(pos).isIn(WondrousWildsTags.BlockTags.FIREFLIES_HIDE_IN);
+        return world.getBlockState(pos).isIn(WondrousWildsTags.Blocks.FIREFLIES_HIDE_IN);
     }
 
     @Override
