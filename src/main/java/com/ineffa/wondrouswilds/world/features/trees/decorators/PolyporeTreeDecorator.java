@@ -5,16 +5,16 @@ import com.ineffa.wondrouswilds.blocks.SmallPolyporeBlock;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import com.ineffa.wondrouswilds.registry.WondrousWildsFeatures;
 import com.mojang.serialization.Codec;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.PillarBlock;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.tag.BlockTags;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.TestableWorld;
-import net.minecraft.world.gen.treedecorator.TreeDecorator;
-import net.minecraft.world.gen.treedecorator.TreeDecoratorType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelSimulatedReader;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecoratorType;
+import net.minecraft.world.level.material.Fluids;
 
 import java.util.Collections;
 import java.util.List;
@@ -27,20 +27,20 @@ public class PolyporeTreeDecorator extends TreeDecorator {
     public static final PolyporeTreeDecorator INSTANCE = new PolyporeTreeDecorator();
     public static final Codec<PolyporeTreeDecorator> CODEC = Codec.unit(() -> INSTANCE);
 
-    private static final BlockState SMALL_POLYPORE_STATE = WondrousWildsBlocks.SMALL_POLYPORE.getDefaultState();
-    private static final BlockState BIG_POLYPORE_STATE = WondrousWildsBlocks.BIG_POLYPORE.getDefaultState();
+    private static final BlockState SMALL_POLYPORE_STATE = WondrousWildsBlocks.SMALL_POLYPORE.get().defaultBlockState();
+    private static final BlockState BIG_POLYPORE_STATE = WondrousWildsBlocks.BIG_POLYPORE.get().defaultBlockState();
 
     @Override
-    protected TreeDecoratorType<?> getType() {
-        return WondrousWildsFeatures.Trees.Decorators.POLYPORE_TYPE;
+    protected TreeDecoratorType<?> type() {
+        return WondrousWildsFeatures.Trees.Decorators.POLYPORE_TYPE.get();
     }
 
     @Override
-    public void generate(Generator generator) {
-        Random random = generator.getRandom();
-        TestableWorld world = generator.getWorld();
+    public void place(Context generator) {
+        RandomSource random = generator.random();
+        LevelSimulatedReader world = generator.level();
 
-        List<BlockPos> verticalLogs = generator.getLogPositions().stream().filter(pos -> world.testBlockState(pos, state -> state.contains(PillarBlock.AXIS) && state.get(PillarBlock.AXIS).isVertical()) && canPlacePolyporesAround(generator, world, pos)).collect(Collectors.toList());
+        List<BlockPos> verticalLogs = generator.logs().stream().filter(pos -> world.isStateAtPosition(pos, state -> state.hasProperty(RotatedPillarBlock.AXIS) && state.getValue(RotatedPillarBlock.AXIS).isVertical()) && canPlacePolyporesAround(generator, world, pos)).collect(Collectors.toList());
         Collections.shuffle(verticalLogs);
 
         int clusterLimit = 0; while (clusterLimit < 3) if (random.nextBoolean()) ++clusterLimit; else break;
@@ -53,7 +53,7 @@ public class PolyporeTreeDecorator extends TreeDecorator {
             int nextUpOffset = 0;
             int nextDownOffset = 0;
             for (int step = 0; step <= steps; ++step) {
-                BlockPos polyporesCenter = logPos.offset(nextOffsetDirection, nextOffsetDirection == Direction.UP ? nextUpOffset : nextDownOffset);
+                BlockPos polyporesCenter = logPos.relative(nextOffsetDirection, nextOffsetDirection == Direction.UP ? nextUpOffset : nextDownOffset);
 
                 if (nextOffsetDirection == Direction.UP) ++nextUpOffset;
                 else if (nextOffsetDirection == Direction.DOWN) ++nextDownOffset;
@@ -65,10 +65,10 @@ public class PolyporeTreeDecorator extends TreeDecorator {
                     int polyporeScale = random.nextInt(5);
                     if (polyporeScale <= 0) continue;
 
-                    BlockPos polyporePos = polyporesCenter.offset(polyporeDirection);
+                    BlockPos polyporePos = polyporesCenter.relative(polyporeDirection);
                     if (!isOpenSpace(generator, world, polyporePos)) continue;
 
-                    generator.replace(polyporePos, polyporeScale > 3 ? BIG_POLYPORE_STATE.with(BigPolyporeBlock.FACING, polyporeDirection) : SMALL_POLYPORE_STATE.with(SmallPolyporeBlock.POLYPORES, polyporeScale).with(SmallPolyporeBlock.FACING, polyporeDirection));
+                    generator.setBlock(polyporePos, polyporeScale > 3 ? BIG_POLYPORE_STATE.setValue(BigPolyporeBlock.FACING, polyporeDirection) : SMALL_POLYPORE_STATE.setValue(SmallPolyporeBlock.POLYPORES, polyporeScale).setValue(SmallPolyporeBlock.FACING, polyporeDirection));
                 }
             }
 
@@ -76,12 +76,12 @@ public class PolyporeTreeDecorator extends TreeDecorator {
         }
     }
 
-    private static boolean canPlacePolyporesAround(Generator generator, TestableWorld world, BlockPos center) {
-        if (!world.testBlockState(center, state -> state.isIn(BlockTags.LOGS))) return false;
+    private static boolean canPlacePolyporesAround(Context generator, LevelSimulatedReader world, BlockPos center) {
+        if (!world.isStateAtPosition(center, state -> state.is(BlockTags.LOGS))) return false;
 
         boolean hasOpenSpace = false;
         for (Direction direction : HORIZONTAL_DIRECTIONS) {
-            BlockPos offsetPos = center.offset(direction);
+            BlockPos offsetPos = center.relative(direction);
             if (isOpenSpace(generator, world, offsetPos)) {
                 hasOpenSpace = true;
                 break;
@@ -91,7 +91,7 @@ public class PolyporeTreeDecorator extends TreeDecorator {
         return hasOpenSpace;
     }
 
-    private static boolean isOpenSpace(Generator generator, TestableWorld world, BlockPos pos) {
-        return generator.isAir(pos) || world.testFluidState(pos, state -> state.isOf(Fluids.WATER) && state.isStill());
+    private static boolean isOpenSpace(Context generator, LevelSimulatedReader world, BlockPos pos) {
+        return generator.isAir(pos) || world.isFluidAtPosition(pos, state -> state.is(Fluids.WATER) && state.isSource());
     }
 }

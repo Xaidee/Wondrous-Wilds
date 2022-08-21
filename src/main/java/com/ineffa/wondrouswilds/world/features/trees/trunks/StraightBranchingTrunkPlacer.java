@@ -4,18 +4,18 @@ import com.google.common.collect.ImmutableList;
 import com.ineffa.wondrouswilds.registry.WondrousWildsFeatures;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.PillarBlock;
-import net.minecraft.util.dynamic.Codecs;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.TestableWorld;
-import net.minecraft.world.gen.feature.TreeFeatureConfig;
-import net.minecraft.world.gen.foliage.FoliagePlacer;
-import net.minecraft.world.gen.trunk.StraightTrunkPlacer;
-import net.minecraft.world.gen.trunk.TrunkPlacer;
-import net.minecraft.world.gen.trunk.TrunkPlacerType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelSimulatedReader;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
+import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacer;
+import net.minecraft.world.level.levelgen.feature.trunkplacers.StraightTrunkPlacer;
+import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacer;
+import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacerType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +25,11 @@ import static com.ineffa.wondrouswilds.util.WondrousWildsUtils.HORIZONTAL_DIRECT
 
 public class StraightBranchingTrunkPlacer extends TrunkPlacer {
 
-    public static final Codec<StraightBranchingTrunkPlacer> CODEC = RecordCodecBuilder.create(instance -> StraightBranchingTrunkPlacer.fillTrunkPlacerFields(instance).and(instance.group(
-            Codecs.NONNEGATIVE_INT.fieldOf("min_branches").forGetter(StraightBranchingTrunkPlacer::getMinBranches),
-            Codecs.POSITIVE_INT.fieldOf("max_branches").forGetter(StraightBranchingTrunkPlacer::getMaxBranches),
-            Codecs.POSITIVE_INT.fieldOf("min_branch_length").forGetter(StraightBranchingTrunkPlacer::getMinBranchLength),
-            Codecs.POSITIVE_INT.fieldOf("max_branch_length").forGetter(StraightBranchingTrunkPlacer::getMaxBranchLength)
+    public static final Codec<StraightBranchingTrunkPlacer> CODEC = RecordCodecBuilder.create(instance -> StraightBranchingTrunkPlacer.trunkPlacerParts(instance).and(instance.group(
+            ExtraCodecs.NON_NEGATIVE_INT.fieldOf("min_branches").forGetter(StraightBranchingTrunkPlacer::getMinBranches),
+            ExtraCodecs.POSITIVE_INT.fieldOf("max_branches").forGetter(StraightBranchingTrunkPlacer::getMaxBranches),
+            ExtraCodecs.POSITIVE_INT.fieldOf("min_branch_length").forGetter(StraightBranchingTrunkPlacer::getMinBranchLength),
+            ExtraCodecs.POSITIVE_INT.fieldOf("max_branch_length").forGetter(StraightBranchingTrunkPlacer::getMaxBranchLength)
     )).apply(instance, StraightBranchingTrunkPlacer::new));
 
     private final int minBranches;
@@ -64,21 +64,21 @@ public class StraightBranchingTrunkPlacer extends TrunkPlacer {
     }
 
     @Override
-    protected TrunkPlacerType<?> getType() {
-        return WondrousWildsFeatures.Trees.TrunkPlacers.STRAIGHT_BRANCHING_TRUNK;
+    protected TrunkPlacerType<?> type() {
+        return WondrousWildsFeatures.Trees.TrunkPlacers.STRAIGHT_BRANCHING_TRUNK.get();
     }
 
     @Override
-    public List<FoliagePlacer.TreeNode> generate(TestableWorld world, BiConsumer<BlockPos, BlockState> replacer, Random random, int height, BlockPos startPos, TreeFeatureConfig config) {
-        StraightTrunkPlacer.setToDirt(world, replacer, random, startPos.down(), config);
+    public List<FoliagePlacer.FoliageAttachment> placeTrunk(LevelSimulatedReader world, BiConsumer<BlockPos, BlockState> replacer, RandomSource random, int height, BlockPos startPos, TreeConfiguration config) {
+        StraightTrunkPlacer.setDirtAt(world, replacer, random, startPos.below(), config);
 
-        BlockPos topTrunkLog = startPos.up(height);
+        BlockPos topTrunkLog = startPos.above(height);
 
         List<BlockPos> trunkLogsSuitableForBranch = new ArrayList<>();
 
         for (int currentHeight = 0; currentHeight < height; ++currentHeight) {
-            BlockPos logPos = startPos.up(currentHeight);
-            if (this.getAndSetState(world, replacer, random, logPos, config) && logPos.getY() < topTrunkLog.up().getY() - 7) trunkLogsSuitableForBranch.add(logPos);
+            BlockPos logPos = startPos.above(currentHeight);
+            if (this.placeLog(world, replacer, random, logPos, config) && logPos.getY() < topTrunkLog.above().getY() - 7) trunkLogsSuitableForBranch.add(logPos);
         }
 
         int branches = this.minBranches; while (branches < this.maxBranches) if (random.nextBoolean()) ++branches; else break;
@@ -97,9 +97,9 @@ public class StraightBranchingTrunkPlacer extends TrunkPlacer {
 
             List<Direction> suitableBranchDirections = new ArrayList<>();
             for (Direction checkDirection : HORIZONTAL_DIRECTIONS) {
-                BlockPos checkPos = trunkLogWithBranchPos.offset(checkDirection);
+                BlockPos checkPos = trunkLogWithBranchPos.relative(checkDirection);
 
-                if (successfulBranchPositions.contains(checkPos.down()) || successfulBranchPositions.contains(checkPos.up())) continue;
+                if (successfulBranchPositions.contains(checkPos.below()) || successfulBranchPositions.contains(checkPos.above())) continue;
 
                 suitableBranchDirections.add(checkDirection);
             }
@@ -112,8 +112,8 @@ public class StraightBranchingTrunkPlacer extends TrunkPlacer {
             while (isNotMaximumLength || isNotMinimumLength) {
                 if (!isNotMinimumLength && random.nextBoolean()) break;
 
-                BlockPos branchPos = trunkLogWithBranchPos.offset(branchDirection, nextBranchLogDistance);
-                if (!this.getAndSetState(world, replacer, random, branchPos, config, state -> state.with(PillarBlock.AXIS, branchDirection.getAxis()))) break;
+                BlockPos branchPos = trunkLogWithBranchPos.relative(branchDirection, nextBranchLogDistance);
+                if (!this.placeLog(world, replacer, random, branchPos, config, state -> state.setValue(RotatedPillarBlock.AXIS, branchDirection.getAxis()))) break;
                 else successfulBranchPositions.add(branchPos);
 
                 ++nextBranchLogDistance;
@@ -122,6 +122,6 @@ public class StraightBranchingTrunkPlacer extends TrunkPlacer {
             }
         }
 
-        return ImmutableList.of(new FoliagePlacer.TreeNode(topTrunkLog, 0, false));
+        return ImmutableList.of(new FoliagePlacer.FoliageAttachment(topTrunkLog, 0, false));
     }
 }

@@ -2,20 +2,20 @@ package com.ineffa.wondrouswilds.world.features.trees.decorators;
 
 import com.ineffa.wondrouswilds.registry.WondrousWildsFeatures;
 import com.mojang.serialization.Codec;
-import net.minecraft.block.BeehiveBlock;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.PillarBlock;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.EntityType;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.TestableWorld;
-import net.minecraft.world.gen.treedecorator.TreeDecorator;
-import net.minecraft.world.gen.treedecorator.TreeDecoratorType;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.LevelSimulatedReader;
+import net.minecraft.world.level.block.BeehiveBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecoratorType;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,33 +28,33 @@ public class HangingBeeNestTreeDecorator extends TreeDecorator {
     public static final Codec<HangingBeeNestTreeDecorator> CODEC = Codec.unit(() -> INSTANCE);
 
     @Override
-    protected TreeDecoratorType<?> getType() {
-        return WondrousWildsFeatures.Trees.Decorators.HANGING_BEE_NEST_TYPE;
+    protected TreeDecoratorType<?> type() {
+        return WondrousWildsFeatures.Trees.Decorators.HANGING_BEE_NEST_TYPE.get();
     }
 
     @Override
-    public void generate(Generator generator) {
-        TestableWorld world = generator.getWorld();
-        Random random = generator.getRandom();
+    public void place(Context generator) {
+        LevelSimulatedReader world = generator.level();
+        RandomSource random = generator.random();
 
-        List<BlockPos> horizontalLogs = generator.getLogPositions().stream().filter(pos -> world.testBlockState(pos, state -> state.contains(PillarBlock.AXIS) && state.get(PillarBlock.AXIS).isHorizontal())).collect(Collectors.toList());
+        List<BlockPos> horizontalLogs = generator.logs().stream().filter(pos -> world.isStateAtPosition(pos, state -> state.hasProperty(RotatedPillarBlock.AXIS) && state.getValue(RotatedPillarBlock.AXIS).isHorizontal())).collect(Collectors.toList());
         Collections.shuffle(horizontalLogs);
 
         for (BlockPos logPos : horizontalLogs) {
-            BlockPos nestPos = logPos.down();
+            BlockPos nestPos = logPos.below();
             if (generator.isAir(nestPos)) {
                 Set<Direction> suitableFacingDirections = new HashSet<>();
-                for (Direction direction : HORIZONTAL_DIRECTIONS) if (generator.isAir(nestPos.offset(direction))) suitableFacingDirections.add(direction);
+                for (Direction direction : HORIZONTAL_DIRECTIONS) if (generator.isAir(nestPos.relative(direction))) suitableFacingDirections.add(direction);
 
                 Direction nestFacingDirection = Util.getRandom(!suitableFacingDirections.isEmpty() ? suitableFacingDirections.toArray(Direction[]::new) : HORIZONTAL_DIRECTIONS, random);
 
-                generator.replace(nestPos, Blocks.BEE_NEST.getDefaultState().with(BeehiveBlock.FACING, nestFacingDirection));
+                generator.setBlock(nestPos, Blocks.BEE_NEST.defaultBlockState().setValue(BeehiveBlock.FACING, nestFacingDirection));
                 world.getBlockEntity(nestPos, BlockEntityType.BEEHIVE).ifPresent(blockEntity -> {
                     int beeCount = 2 + random.nextInt(2);
                     for (int i = 0; i < beeCount; ++i) {
-                        NbtCompound nbt = new NbtCompound();
-                        nbt.putString("id", Registry.ENTITY_TYPE.getId(EntityType.BEE).toString());
-                        blockEntity.addBee(nbt, random.nextInt(599), false);
+                        CompoundTag nbt = new CompoundTag();
+                        nbt.putString("id", ForgeRegistries.ENTITY_TYPES.getKey(EntityType.BEE).toString());
+                        blockEntity.storeBee(nbt, random.nextInt(599), false);
                     }
                 });
 

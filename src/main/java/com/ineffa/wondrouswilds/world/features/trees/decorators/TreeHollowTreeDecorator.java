@@ -5,14 +5,14 @@ import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import com.ineffa.wondrouswilds.registry.WondrousWildsEntities;
 import com.ineffa.wondrouswilds.registry.WondrousWildsFeatures;
 import com.mojang.serialization.Codec;
-import net.minecraft.block.PillarBlock;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.TestableWorld;
-import net.minecraft.world.gen.treedecorator.TreeDecorator;
-import net.minecraft.world.gen.treedecorator.TreeDecoratorType;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelSimulatedReader;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
+import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecoratorType;
 
 import java.util.HashSet;
 import java.util.List;
@@ -27,16 +27,16 @@ public class TreeHollowTreeDecorator extends TreeDecorator {
     public static final Codec<TreeHollowTreeDecorator> CODEC = Codec.unit(() -> INSTANCE);
 
     @Override
-    protected TreeDecoratorType<?> getType() {
-        return WondrousWildsFeatures.Trees.Decorators.TREE_HOLLOW_TYPE;
+    protected TreeDecoratorType<?> type() {
+        return WondrousWildsFeatures.Trees.Decorators.TREE_HOLLOW_TYPE.get();
     }
 
     @Override
-    public void generate(Generator generator) {
-        TestableWorld world = generator.getWorld();
-        Random random = generator.getRandom();
+    public void place(Context generator) {
+        LevelSimulatedReader world = generator.level();
+        RandomSource random = generator.random();
 
-        List<BlockPos> suitableLogs = generator.getLogPositions().stream().filter(pos -> world.testBlockState(pos, state -> TREE_HOLLOW_MAP.containsKey(state.getBlock()) && state.contains(PillarBlock.AXIS) && state.get(PillarBlock.AXIS).isVertical()) && hasSpaceAround(generator, pos)).toList();
+        List<BlockPos> suitableLogs = generator.logs().stream().filter(pos -> world.isStateAtPosition(pos, state -> TREE_HOLLOW_MAP.containsKey(state.getBlock()) && state.hasProperty(RotatedPillarBlock.AXIS) && state.getValue(RotatedPillarBlock.AXIS).isVertical()) && hasSpaceAround(generator, pos)).toList();
 
         if (suitableLogs.isEmpty()) return;
 
@@ -45,24 +45,24 @@ public class TreeHollowTreeDecorator extends TreeDecorator {
         if (chosenLog == null) return;
 
         Set<Direction> suitableFacingDirections = new HashSet<>();
-        for (Direction direction : HORIZONTAL_DIRECTIONS) if (generator.isAir(chosenLog.offset(direction))) suitableFacingDirections.add(direction);
+        for (Direction direction : HORIZONTAL_DIRECTIONS) if (generator.isAir(chosenLog.relative(direction))) suitableFacingDirections.add(direction);
 
         Direction facingDirection = Util.getRandom(!suitableFacingDirections.isEmpty() ? suitableFacingDirections.toArray(Direction[]::new) : HORIZONTAL_DIRECTIONS, random);
 
-        world.testBlockState(chosenLog, state -> {
-            generator.replace(chosenLog, TREE_HOLLOW_MAP.get(state.getBlock()).getDefaultState().with(TreeHollowBlock.FACING, facingDirection));
-            world.getBlockEntity(chosenLog, WondrousWildsBlocks.BlockEntities.TREE_HOLLOW).ifPresent(treeHollow -> {
-                treeHollow.addFreshInhabitant(WondrousWildsEntities.WOODPECKER); // TODO: Make configurable for use with other entities
+        world.isStateAtPosition(chosenLog, state -> {
+            generator.setBlock(chosenLog, TREE_HOLLOW_MAP.get(state.getBlock()).defaultBlockState().setValue(TreeHollowBlock.FACING, facingDirection));
+            world.getBlockEntity(chosenLog, WondrousWildsBlocks.BlockEntities.TREE_HOLLOW.get()).ifPresent(treeHollow -> {
+                treeHollow.addFreshInhabitant(WondrousWildsEntities.WOODPECKER.get()); // TODO: Make configurable for use with other entities
             });
 
             return true;
         });
     }
 
-    private static boolean hasSpaceAround(Generator generator, BlockPos pos) {
+    private static boolean hasSpaceAround(Context generator, BlockPos pos) {
         boolean hasOpenSpace = false;
         for (Direction direction : HORIZONTAL_DIRECTIONS) {
-            BlockPos offsetPos = pos.offset(direction);
+            BlockPos offsetPos = pos.relative(direction);
             if (generator.isAir(offsetPos)) {
                 hasOpenSpace = true;
                 break;
