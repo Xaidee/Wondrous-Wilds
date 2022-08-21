@@ -6,79 +6,29 @@ import com.ineffa.wondrouswilds.entities.ai.*;
 import com.ineffa.wondrouswilds.networking.packets.s2c.WoodpeckerDrillPacket;
 import com.ineffa.wondrouswilds.registry.*;
 import com.ineffa.wondrouswilds.util.fakeplayer.WoodpeckerFakePlayer;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.PillarBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.entity.*;
-import net.minecraft.entity.ai.control.BodyControl;
-import net.minecraft.entity.ai.goal.*;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.data.DataTracker;
-import net.minecraft.entity.data.TrackedData;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.mob.Angerable;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUsageContext;
-import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.particle.DefaultParticleType;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerPlayerConnection;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.tag.BlockTags;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.util.TimeHelper;
 import net.minecraft.util.TimeUtil;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.intprovider.UniformIntProvider;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.Difficulty;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.LocalDifficulty;
-import net.minecraft.world.ServerWorldAccess;
-import net.minecraft.world.World;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -87,7 +37,6 @@ import net.minecraft.world.entity.ai.control.BodyRotationControl;
 import net.minecraft.world.entity.ai.goal.*;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.UseOnContext;
@@ -101,6 +50,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.network.NetworkEvent;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib3.core.IAnimatable;
 import software.bernie.geckolib3.core.PlayState;
@@ -249,7 +199,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                 case 4 -> WondrousWildsBlocks.WHITE_VIOLET.get();
         };
 
-        this.equipStack(EquipmentSlot.MAINHAND, new ItemStack(itemToHold));
+        this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(itemToHold));
     }
 
     @Override
@@ -610,7 +560,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                     if (this.getPeckChainTicks() % 10 == 0 && this.getPeckChainTicks() != this.calculateTicksForPeckChain(this.getCurrentPeckChainLength())) {
                         SoundEvent peckSound = null;
 
-                        if (this.isAttacking() && this.hasAttackTarget()) {
+                        if (this.hasAttackTarget() && this.isAngry()) {
                             LivingEntity attackTarget = this.getTarget();
                             double distanceFromTarget = this.distanceToSqr(attackTarget.getX(), attackTarget.getY(), attackTarget.getZ());
 
@@ -630,12 +580,12 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                             FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
                             buf.writeBlockPos(this.getClingPos());
                             buf.writeEnum(this.clingSide);
-                            for (ServerPlayer receiver : PlayerList.tracking(this)) ServerPlayerConnection.send(receiver, WoodpeckerDrillPacket.ID, buf);
+                            //for (ServerPlayer receiver : PlayerList.tracking(this)) send(WoodpeckerDrillPacket.ID, buf);
 
                             peckSound = peckState.getSoundType().getHitSound();
                         }
                         else {
-                            BlockHitResult hitResult = (BlockHitResult) this.raycast(this.getPeckReach(), 0.0F, false);
+                            BlockHitResult hitResult = (BlockHitResult) this.pick(this.getPeckReach(), 0.0F, false);
                             BlockState peckState = this.getLevel().getBlockState(hitResult.getBlockPos());
 
                             if (peckState.is(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH)) {
