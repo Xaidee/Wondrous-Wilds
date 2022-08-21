@@ -4,7 +4,10 @@ import com.ineffa.wondrouswilds.registry.*;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.DeferredRegister;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +22,9 @@ public class WondrousWilds {
 	public static final CreativeModeTab WONDROUS_WILDS_ITEM_GROUP = new CreativeModeTab("wondrous_wilds") {
 		@Override
 		public @NotNull ItemStack makeIcon() {
-			return new ItemStack(Blocks.DIRT);
+			return new ItemStack(WondrousWildsItems.LOVIFIER.get());
 		}
-	};//FabricItemGroupBuilder.build(new Identifier(WondrousWilds.MOD_ID, "wondrous_wilds"), () -> new ItemStack(WondrousWildsItems.LOVIFIER));
+	};
 
 	public WondrousWilds() {
 		LOGGER.info("Wondrous Wilds initializing!");
@@ -29,11 +32,23 @@ public class WondrousWilds {
 		GeckoLibMod.DISABLE_IN_DEV = true;
 		GeckoLib.initialize();
 
+		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+
+		DeferredRegister<?>[] registers = {
+				WondrousWildsBlocks.BLOCKS,
+				WondrousWildsBlocks.BLOCK_ENTITIES,
+				WondrousWildsItems.ITEMS,
+				WondrousWildsEntities.ENTITIES,
+		};
+
+		for (DeferredRegister<?> register : registers) {
+			register.register(bus);
+		}
+
 		WondrousWildsSounds.initialize();
 
 		WondrousWildsEntities.initialize();
 		WondrousWildsBlocks.initialize();
-		WondrousWildsItems.initialize();
 
 		WondrousWildsFeatures.initialize();
 
