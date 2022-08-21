@@ -1,15 +1,15 @@
 package com.ineffa.wondrouswilds.mixin;
 
-import net.minecraft.world.gen.feature.TreeConfiguredFeatures;
-import net.minecraft.world.gen.feature.TreeFeatureConfig;
+import net.minecraft.data.worldgen.features.TreeFeatures;
+import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
-@Mixin(TreeConfiguredFeatures.class)
+@Mixin(TreeFeatures.class)
 public interface TreeConfiguredFeaturesInvoker {
 
-    @Invoker("superBirch")
-    static TreeFeatureConfig.Builder tallBirchConfig() {
+    @Invoker("createSuperBirch")
+    static TreeConfiguration.TreeConfigurationBuilder tallBirchConfig() {
         throw new AssertionError();
     }
 }

@@ -1,13 +1,13 @@
 package com.ineffa.wondrouswilds.mixin;
 
 import com.ineffa.wondrouswilds.entities.FireflyEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ai.goal.Goal;
-import net.minecraft.entity.ai.goal.GoalSelector;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -15,23 +15,23 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MobEntity.class)
+@Mixin(Mob.class)
 public abstract class MobEntityMixin extends Entity {
 
-    @Shadow @Final protected GoalSelector goalSelector;
+    @Shadow @Final public GoalSelector goalSelector;
 
-    private MobEntityMixin(EntityType<? extends MobEntity> entityType, World world) {
+    private MobEntityMixin(EntityType<? extends Mob> entityType, Level world) {
         super(entityType, world);
     }
 
-    @Inject(at = @At("HEAD"), method = "updateGoalControls", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "updateControlFlags", cancellable = true)
     private void stopFireflyFromControlling(CallbackInfo callback) {
-        boolean shouldNotBeControlled = !(this.getPrimaryPassenger() instanceof MobEntity) || this.getPrimaryPassenger() instanceof FireflyEntity;
-        boolean isNotRidingBoat = !(this.getVehicle() instanceof BoatEntity);
+        boolean shouldNotBeControlled = !(this.getControllingPassenger() instanceof Mob) || this.getControllingPassenger() instanceof FireflyEntity;
+        boolean isNotRidingBoat = !(this.getVehicle() instanceof Boat);
 
-        this.goalSelector.setControlEnabled(Goal.Control.MOVE, shouldNotBeControlled);
-        this.goalSelector.setControlEnabled(Goal.Control.JUMP, shouldNotBeControlled && isNotRidingBoat);
-        this.goalSelector.setControlEnabled(Goal.Control.LOOK, shouldNotBeControlled);
+        this.goalSelector.setControlFlag(Goal.Flag.MOVE, shouldNotBeControlled);
+        this.goalSelector.setControlFlag(Goal.Flag.JUMP, shouldNotBeControlled && isNotRidingBoat);
+        this.goalSelector.setControlFlag(Goal.Flag.LOOK, shouldNotBeControlled);
 
         callback.cancel();
     }
