@@ -1,5 +1,7 @@
 package com.ineffa.wondrouswilds;
 
+import com.ineffa.wondrouswilds.client.WondrousWildsClient;
+import com.ineffa.wondrouswilds.networking.WondrousWildsNetwork;
 import com.ineffa.wondrouswilds.registry.*;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.HolderSet;
@@ -25,6 +27,7 @@ import net.minecraftforge.common.world.ForgeBiomeModifiers;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -61,6 +64,7 @@ public class WondrousWilds {
 
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
 
+		bus.addListener(this::clientSetup);
 		bus.addListener(this::gatherData);
 
 		DeferredRegister<?>[] registers = {
@@ -86,6 +90,14 @@ public class WondrousWilds {
 		WondrousWildsBlocks.initialize();
 
 		WondrousWildsFeatures.initialize();
+	}
+
+	public void clientSetup(FMLClientSetupEvent event) {
+		WondrousWildsClient.registerBlockRenderers();
+		WondrousWildsNetwork.registerS2CPackets();
+		event.enqueueWork(() -> {
+
+		});
 	}
 
 	public void gatherData(GatherDataEvent event) {

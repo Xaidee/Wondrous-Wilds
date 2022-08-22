@@ -1,19 +1,49 @@
 package com.ineffa.wondrouswilds.client.rendering;
 
+import com.ineffa.wondrouswilds.WondrousWilds;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
-import com.ineffa.wondrouswilds.registry.WondrousWildsItems;
-import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.world.item.BlockItem;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber(modid = WondrousWilds.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class WondrousWildsColorProviders {
 
-    public static void register() {
-        ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> getYellowBirchLeavesColor(), WondrousWildsBlocks.YELLOW_BIRCH_LEAVES);
-        ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> getOrangeBirchLeavesColor(), WondrousWildsBlocks.ORANGE_BIRCH_LEAVES);
-        ColorProviderRegistry.BLOCK.register((state, world, pos, tintIndex) -> getRedBirchLeavesColor(), WondrousWildsBlocks.RED_BIRCH_LEAVES);
+    @SubscribeEvent
+    public static void registerBlockColors(RegisterColorHandlersEvent.Block event) {
+        event.register((state, world, pos, tintIndex) ->
+                getYellowBirchLeavesColor(),
+                    WondrousWildsBlocks.YELLOW_BIRCH_LEAVES.get()
+                );
+        event.register((state, world, pos, tintIndex) ->
+                        getOrangeBirchLeavesColor(),
+                WondrousWildsBlocks.ORANGE_BIRCH_LEAVES.get()
+        );
+        event.register((state, world, pos, tintIndex) ->
+                        getRedBirchLeavesColor(),
+                WondrousWildsBlocks.RED_BIRCH_LEAVES.get()
+        );
+    }
 
-        ColorProviderRegistry.ITEM.register((stack, tintIndex) -> getYellowBirchLeavesColor(), WondrousWildsItems.YELLOW_BIRCH_LEAVES);
-        ColorProviderRegistry.ITEM.register((stack, tintIndex) -> getOrangeBirchLeavesColor(), WondrousWildsItems.ORANGE_BIRCH_LEAVES);
-        ColorProviderRegistry.ITEM.register((stack, tintIndex) -> getRedBirchLeavesColor(), WondrousWildsItems.RED_BIRCH_LEAVES);
+    @SubscribeEvent
+    public static void registerBlockColors(RegisterColorHandlersEvent.Item event) {
+        BlockColors bColors = event.getBlockColors();
+
+        event.register((stack, tintIndex) ->
+                        bColors.getColor(((BlockItem) stack.getItem()).getBlock().defaultBlockState(), null, null, 0),
+                WondrousWildsBlocks.YELLOW_BIRCH_LEAVES.get()
+        );
+        event.register((stack, tintIndex) ->
+                        bColors.getColor(((BlockItem) stack.getItem()).getBlock().defaultBlockState(), null, null, 0),
+                WondrousWildsBlocks.ORANGE_BIRCH_LEAVES.get()
+        );
+        event.register((stack, tintIndex) ->
+                        bColors.getColor(((BlockItem) stack.getItem()).getBlock().defaultBlockState(), null, null, 0),
+                WondrousWildsBlocks.RED_BIRCH_LEAVES.get()
+        );
     }
 
     public static int getYellowBirchLeavesColor() {
