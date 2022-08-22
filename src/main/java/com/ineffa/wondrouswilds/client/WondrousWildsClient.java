@@ -1,24 +1,28 @@
 package com.ineffa.wondrouswilds.client;
 
+import com.ineffa.wondrouswilds.WondrousWilds;
 import com.ineffa.wondrouswilds.client.rendering.WondrousWildsColorProviders;
 import com.ineffa.wondrouswilds.client.rendering.entity.FireflyRenderer;
 import com.ineffa.wondrouswilds.client.rendering.entity.WoodpeckerRenderer;
 import com.ineffa.wondrouswilds.networking.WondrousWildsNetwork;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import com.ineffa.wondrouswilds.registry.WondrousWildsEntities;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-@Environment(value = EnvType.CLIENT)
-public class WondrousWildsClient implements ClientModInitializer {
+@OnlyIn(Dist.CLIENT)
+public class WondrousWildsClient {
 
-    @Override
+    @SubscribeEvent
+    public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(WondrousWildsEntities.FIREFLY.get(), FireflyRenderer::new);
+        event.registerEntityRenderer(WondrousWildsEntities.WOODPECKER.get(), WoodpeckerRenderer::new);
+    }
+
     public void onInitializeClient() {
-        EntityRendererRegistry.register(WondrousWildsEntities.FIREFLY, FireflyRenderer::new);
+        /*EntityRendererRegistry.register(WondrousWildsEntities.FIREFLY, FireflyRenderer::new);
         EntityRendererRegistry.register(WondrousWildsEntities.WOODPECKER, WoodpeckerRenderer::new);
 
         BlockRenderLayerMap.INSTANCE.putBlock(WondrousWildsBlocks.SMALL_POLYPORE, RenderLayer.getCutout());
@@ -36,7 +40,7 @@ public class WondrousWildsClient implements ClientModInitializer {
         BlockRenderLayerMap.INSTANCE.putBlock(WondrousWildsBlocks.YELLOW_BIRCH_LEAVES, RenderLayer.getCutoutMipped());
         BlockRenderLayerMap.INSTANCE.putBlock(WondrousWildsBlocks.ORANGE_BIRCH_LEAVES, RenderLayer.getCutoutMipped());
         BlockRenderLayerMap.INSTANCE.putBlock(WondrousWildsBlocks.RED_BIRCH_LEAVES, RenderLayer.getCutoutMipped());
-
+*/
         WondrousWildsColorProviders.register();
 
         WondrousWildsNetwork.registerS2CPackets();
