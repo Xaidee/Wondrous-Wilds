@@ -655,7 +655,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                         if (this.getChirpDelay() > 0) {
                             if (this.getChirpDelay() == 2) {
                                 ++this.chirpCount;
-                                this.playSound(WondrousWildsSounds.WOODPECKER_CHIRP, this.getSoundVolume(), this.nextChirpPitch);
+                                this.playSound(WondrousWildsSounds.WOODPECKER_CHIRP.get(), this.getSoundVolume(), this.nextChirpPitch);
                             }
 
                             this.setChirpDelay((byte) (this.getChirpDelay() - 1));
@@ -669,7 +669,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                 }
             }
             else {
-                if (this.getDrummingTicks() == 45) this.playSound(WondrousWildsSounds.WOODPECKER_DRUM, 4.0F, 1.0F);
+                if (this.getDrummingTicks() == 45) this.playSound(WondrousWildsSounds.WOODPECKER_DRUM.get(), 4.0F, 1.0F);
 
                 this.setDrummingTicks(this.getDrummingTicks() - 1);
             }

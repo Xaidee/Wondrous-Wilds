@@ -62,7 +62,6 @@ public class WondrousWilds {
 		LOGGER.info("Wondrous Wilds initializing!");
 
 		GeckoLibMod.DISABLE_IN_DEV = true;
-		//GeckoLib.initialize();
 
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
 
@@ -81,18 +80,14 @@ public class WondrousWilds {
 				WondrousWildsFeatures.Trees.TrunkPlacers.TRUNK_PLACERS,
 				WondrousWildsFeatures.Trees.FoliagePlacers.FOLIAGE_PLACERS,
 				WondrousWildsFeatures.Trees.Decorators.TREE_DECORATORS,
+				WondrousWildsSounds.SOUNDS
 		};
 
 		for (DeferredRegister<?> register : registers) {
 			register.register(bus);
 		}
 
-		WondrousWildsSounds.initialize();
-
-		WondrousWildsEntities.initialize();
 		WondrousWildsBlocks.initialize();
-
-		WondrousWildsFeatures.initialize();
 	}
 
 	public void setup(FMLCommonSetupEvent event) {
@@ -109,6 +104,7 @@ public class WondrousWilds {
 	}
 
 	public void clientSetup(FMLClientSetupEvent event) {
+		GeckoLib.initialize();
 		WondrousWildsClient.registerBlockRenderers();
 		WondrousWildsNetwork.registerS2CPackets();
 		event.enqueueWork(() -> {

@@ -60,16 +60,12 @@ public class WondrousWildsFeatures {
             public static final DeferredRegister<TrunkPlacerType<?>> TRUNK_PLACERS = DeferredRegister.create(Registry.TRUNK_PLACER_TYPE_REGISTRY, WondrousWilds.MOD_ID);
 
             public static final RegistryObject<TrunkPlacerType<StraightBranchingTrunkPlacer>> STRAIGHT_BRANCHING_TRUNK = TRUNK_PLACERS.register("straight_branching_trunk_placer", () -> new TrunkPlacerType<>(StraightBranchingTrunkPlacer.CODEC));
-
-            public static void init() {}
         }
 
         public static final class FoliagePlacers {
             public static final DeferredRegister<FoliagePlacerType<?>> FOLIAGE_PLACERS = DeferredRegister.create(Registry.FOLIAGE_PLACER_TYPE_REGISTRY, WondrousWilds.MOD_ID);
 
             public static final RegistryObject<FoliagePlacerType<FancyBirchFoliagePlacer>> FANCY_BIRCH = FOLIAGE_PLACERS.register("fancy_birch_foliage_placer", () -> new FoliagePlacerType<>(FancyBirchFoliagePlacer.CODEC));
-
-            public static void init() {}
         }
 
         public static final class Decorators {
@@ -84,8 +80,6 @@ public class WondrousWildsFeatures {
             public static final TreeDecorator HANGING_BEE_NEST = HangingBeeNestTreeDecorator.INSTANCE;
             public static final TreeDecorator POLYPORES = PolyporeTreeDecorator.INSTANCE;
             public static final TreeDecorator COBWEBS = CobwebTreeDecorator.INSTANCE;
-
-            public static void init() {}
         }
 
         public static final class Configs {
@@ -160,8 +154,6 @@ public class WondrousWildsFeatures {
                         new TwoLayersFeatureSize(1, 0, 2)
                 ).decorators(ImmutableList.of(Decorators.HANGING_BEE_NEST, Decorators.POLYPORES, Decorators.COBWEBS)).ignoreVines();
             }
-
-            public static void init() {}
         }
 
         public static final RegistryObject<ConfiguredFeature<?, ?>> FANCY_BIRCH_CONFIGURED = CONFIGURED_FEATURES.register("fancy_birch", () -> new ConfiguredFeature<>(Feature.TREE, Configs.fancyBirchConfig().build()));
@@ -217,8 +209,6 @@ public class WondrousWildsFeatures {
                 new WeightedPlacedFeature(RED_FANCY_BIRCH_WITH_BEES_PLACED.getHolder().get(), 0.03F)
         ), TALL_BIRCH_PLACED.getHolder().get())));
         public static final RegistryObject<PlacedFeature> OLD_GROWTH_BIRCH_FOREST_TREES_PLACED = PLACED_FEATURES.register("old_growth_birch_forest_trees", () -> new PlacedFeature(OLD_GROWTH_BIRCH_FOREST_TREES_CONFIGURED.getHolder().get(), List.of(PlacementUtils.countExtra(10, 0.1F, 1), PlacementUtils.filteredByBlockSurvival(Blocks.BIRCH_SAPLING))));
-
-        public static void init() {}
     }
 
     public static final Feature<FallenLogFeatureConfig> FALLEN_LOG = new FallenLogFeature();
@@ -263,13 +253,5 @@ public class WondrousWildsFeatures {
 
     private static VioletPatchFeatureConfig whiteVioletPatchConfig() {
         return new VioletPatchFeatureConfig(BlockStateProvider.simple(WondrousWildsBlocks.WHITE_VIOLET.get()));
-    }
-
-    public static void initialize() {
-        Trees.TrunkPlacers.init();
-        Trees.FoliagePlacers.init();
-        Trees.Decorators.init();
-        Trees.Configs.init();
-        Trees.init();
     }
 }
