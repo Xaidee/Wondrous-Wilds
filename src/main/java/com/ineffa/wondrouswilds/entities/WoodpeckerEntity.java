@@ -1,7 +1,7 @@
 package com.ineffa.wondrouswilds.entities;
 
 import com.ineffa.wondrouswilds.blocks.TreeHollowBlock;
-import com.ineffa.wondrouswilds.blocks.entity.TreeHollowBlockEntity;
+import com.ineffa.wondrouswilds.blocks.entity.InhabitableNestBlockEntity;
 import com.ineffa.wondrouswilds.entities.ai.*;
 import com.ineffa.wondrouswilds.networking.packets.s2c.WoodpeckerDrillPacket;
 import com.ineffa.wondrouswilds.registry.*;
@@ -67,7 +67,7 @@ import java.util.function.Predicate;
 import static com.ineffa.wondrouswilds.util.WondrousWildsUtils.HORIZONTAL_DIRECTIONS;
 import static com.ineffa.wondrouswilds.util.WondrousWildsUtils.TREE_HOLLOW_MAP;
 
-public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements TreeHollowNester, NeutralMob, IAnimatable {
+public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements BlockNester, Angerable, IAnimatable {
 
     public static final String CLING_POS_KEY = "ClingPos";
     public static final String NEST_POS_KEY = "NestPos";
@@ -172,8 +172,8 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
     }
 
     @Override
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor world, DifficultyInstance difficulty, MobSpawnType spawnReason, @Nullable SpawnGroupData entityData, @Nullable CompoundTag entityNbt) {
-        if (this.getPlaySessionsBeforeTame() <= 0 && !this.isTame()) this.setPlaySessionsBeforeTame(this.getRandom().nextIntBetweenInclusive(5, 15));
+    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
+        if (this.getPlaySessionsBeforeTame() <= 0 && !this.isTame()) this.setPlaySessionsBeforeTame(this.getRandom().nextBetween(5, 15));
 
         this.populateDefaultEquipmentSlots(world.getRandom(), difficulty);
 
@@ -219,9 +219,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
 
     public boolean isClinging() {
         BlockPos clingPos = this.entityData.get(CLING_POS);
-        BlockPos origin = BlockPos.ZERO;
-
-        return clingPos.getX() != origin.getX() && clingPos.getY() != origin.getY() && clingPos.getZ() != origin.getZ();
+        return clingPos != null && !WondrousWildsUtils.isPosAtWorldOrigin(clingPos);
     }
 
     public boolean tryClingingTo(BlockPos clingPos) {
@@ -551,7 +549,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
             this.flapAngle += this.flapSpeed;
         }
         else {
-            if (this.hasNestPos() && !(this.getLevel().getBlockEntity(this.getNestPos()) instanceof TreeHollowBlockEntity)) this.clearNestPos();
+            if (this.hasNestPos() && !(this.getWorld().getBlockEntity(this.getNestPos()) instanceof TreeHollowBlockEntity)) this.clearNestPos();
 
             if (this.isPecking()) {
                 if (this.getPeckChainTicks() <= 0) this.stopPecking(false);
@@ -655,7 +653,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Tr
                         if (this.getChirpDelay() > 0) {
                             if (this.getChirpDelay() == 2) {
                                 ++this.chirpCount;
-                                this.playSound(WondrousWildsSounds.WOODPECKER_CHIRP.get(), this.getSoundVolume(), this.nextChirpPitch);
+                                this.playSound(WondrousWildsSounds.WOODPECKER_CHIRP, this.getSoundVolume(), this.nextChirpPitch);
                             }
 
                             this.setChirpDelay((byte) (this.getChirpDelay() - 1));

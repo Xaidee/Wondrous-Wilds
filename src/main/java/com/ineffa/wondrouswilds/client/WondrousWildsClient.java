@@ -1,6 +1,5 @@
 package com.ineffa.wondrouswilds.client;
 
-import com.ineffa.wondrouswilds.WondrousWilds;
 import com.ineffa.wondrouswilds.client.rendering.WondrousWildsColorProviders;
 import com.ineffa.wondrouswilds.client.rendering.entity.FireflyRenderer;
 import com.ineffa.wondrouswilds.client.rendering.entity.WoodpeckerRenderer;

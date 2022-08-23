@@ -1,19 +1,17 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
-import com.ineffa.wondrouswilds.blocks.entity.TreeHollowBlockEntity;
+import com.ineffa.wondrouswilds.blocks.entity.InhabitableNestBlockEntity;
 import com.ineffa.wondrouswilds.entities.FlyingAndWalkingAnimalEntity;
 import com.ineffa.wondrouswilds.entities.TreeHollowNester;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
-import net.minecraft.world.level.LevelReader;
-
-import java.util.logging.Level;
+import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.PathAwareEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.WorldView;
 
 public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
 
-    private final TreeHollowNester nester;
+    private final BlockNester nester;
     private final Mob nesterEntity;
 
     private int nextCheckDelay = 40;
@@ -22,7 +20,7 @@ public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
     private boolean lookingForNest = false;
 
     public FindOrReturnToTreeHollowGoal(TreeHollowNester nester, double speed, int range, int maxYDifference) {
-        super((PathfinderMob) nester, speed, range, maxYDifference);
+        super((PathAwareEntity) nester, speed, range, maxYDifference);
 
         this.nester = nester;
         this.nesterEntity = (Mob) nester;
@@ -84,7 +82,7 @@ public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
     protected boolean isValidTarget(LevelReader world, BlockPos pos) {
         if (!this.lookingForNest) return true;
 
-        return world.getBlockEntity(pos) instanceof TreeHollowBlockEntity;
+        return world.getBlockEntity(pos) instanceof InhabitableNestBlockEntity;
     }
 
     @Override

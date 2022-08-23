@@ -1,8 +1,8 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.entities.WoodpeckerEntity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.goal.MeleeAttackGoal;
 
 public class WoodpeckerAttackGoal extends MeleeAttackGoal {
 
@@ -15,6 +15,13 @@ public class WoodpeckerAttackGoal extends MeleeAttackGoal {
     }
 
     @Override
+    public void start() {
+        super.start();
+
+        if (!this.woodpecker.isFlying()) this.woodpecker.setFlying(true);
+    }
+
+    @Override
     public void stop() {
         super.stop();
 
@@ -22,14 +29,17 @@ public class WoodpeckerAttackGoal extends MeleeAttackGoal {
     }
 
     @Override
-    protected void checkAndPerformAttack(LivingEntity target, double squaredDistance) {
-        if (this.woodpecker.isPecking()) return;
+    protected void attack(LivingEntity target, double squaredDistance) {
+        double maxDistance = this.getSquaredMaxAttackDistance(target);
+        if (squaredDistance <= maxDistance) {
+            if (this.woodpecker.isPecking())
+                this.woodpecker.setVelocity(this.woodpecker.getVelocity().multiply(0.9D));
 
-        double maxDistance = this.getAttackReachSqr(target);
-        if (squaredDistance <= maxDistance && this.isTimeToAttack()) {
-            this.resetAttackCooldown();
+            else if (this.isCooledDown()) {
+                this.resetCooldown();
 
-            this.woodpecker.startPeckChain(1);
+                this.woodpecker.startPeckChain(1);
+            }
         }
     }
 }

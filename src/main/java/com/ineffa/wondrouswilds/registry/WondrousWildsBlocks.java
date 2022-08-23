@@ -65,6 +65,8 @@ public class WondrousWildsBlocks {
     public static final RegistryObject<Block> HOLLOW_STRIPPED_MANGROVE_LOG = registerBlock("hollow_stripped_mangrove_log", () -> new HollowLogBlock(BlockBehaviour.Properties.copy(Blocks.STRIPPED_MANGROVE_LOG).noOcclusion()), WONDROUS_WILDS_ITEM_GROUP);
     public static final RegistryObject<Block> HOLLOW_STRIPPED_CRIMSON_STEM = registerBlock("hollow_stripped_crimson_stem", () -> new HollowLogBlock(BlockBehaviour.Properties.copy(Blocks.STRIPPED_CRIMSON_STEM).noOcclusion()), WONDROUS_WILDS_ITEM_GROUP);
     public static final RegistryObject<Block> HOLLOW_STRIPPED_WARPED_STEM = registerBlock("hollow_stripped_warped_stem", () -> new HollowLogBlock(BlockBehaviour.Properties.copy(Blocks.STRIPPED_WARPED_STEM).noOcclusion()), WONDROUS_WILDS_ITEM_GROUP);
+    public static final RegistryObject<Block> BIRCH_TREE_HOLLOW = registerBlock("birch_tree_hollow", () -> new TreeHollowBlock(BlockBehaviour.Properties.of(Materials.WOOD, MaterialColor.TERRACOTTA_YELLOW).strength(2.0f).sound(SoundType.WOOD)), WONDROUS_WILDS_ITEM_GROUP);
+    public static final RegistryObject<Block> BIRCH_BIRDHOUSE = registerBlock("birch_birdhouse", () -> new BirdhouseBlock(BlockBehaviour.Properties.copy(Blocks.BIRCH_PLANKS).noOcclusion()), WONDROUS_WILDS_ITEM_GROUP);
 
     public static final RegistryObject<Block> BIRCH_TREE_HOLLOW = registerBlock("birch_tree_hollow", () -> new TreeHollowBlock(BlockBehaviour.Properties.of(Material.WOOD, MaterialColor.TERRACOTTA_YELLOW).strength(2.0f).sound(SoundType.WOOD)), WONDROUS_WILDS_ITEM_GROUP);
 
@@ -74,6 +76,7 @@ public class WondrousWildsBlocks {
 
     public static final class BlockEntities {
         public static final RegistryObject<BlockEntityType<TreeHollowBlockEntity>> TREE_HOLLOW = BLOCK_ENTITIES.register("tree_hollow", () -> BlockEntityType.Builder.of(TreeHollowBlockEntity::new, BIRCH_TREE_HOLLOW.get()).build(null));
+        public static final RegistryObject<BlockEntityType<BirdhouseBlockEntity>> BIRDHOUSE = BLOCK_ENTITIES.register("birdhouse", () -> BlockEntityType.Builder.of(BirdhouseBlockEntity::new, BIRCH_BIRDHOUSE.get()).build(null));
     }
 
     private static RegistryObject<Block> registerBlock(String name, Supplier<? extends Block> block) {
