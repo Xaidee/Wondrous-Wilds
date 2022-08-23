@@ -74,8 +74,6 @@ public class WondrousWildsBlocks {
 
     public static final class BlockEntities {
         public static final RegistryObject<BlockEntityType<TreeHollowBlockEntity>> TREE_HOLLOW = BLOCK_ENTITIES.register("tree_hollow", () -> BlockEntityType.Builder.of(TreeHollowBlockEntity::new, BIRCH_TREE_HOLLOW.get()).build(null));
-
-        public static void init() {}
     }
 
     private static RegistryObject<Block> registerBlock(String name, Supplier<? extends Block> block) {
@@ -91,8 +89,6 @@ public class WondrousWildsBlocks {
 
     public static Map<Supplier<? extends Block>, Supplier<? extends Block>> Strippables = new HashMap<>();
     public static void initialize() {
-        BlockEntities.init();
-
         Strippables.put(DEAD_BIRCH_LOG, () -> Blocks.STRIPPED_BIRCH_LOG);
 
         Strippables.put(HOLLOW_OAK_LOG, HOLLOW_STRIPPED_OAK_LOG);

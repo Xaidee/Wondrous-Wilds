@@ -18,6 +18,8 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ComposterBlock;
+import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.FlowerPotBlock;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -94,12 +96,51 @@ public class WondrousWilds {
 		event.enqueueWork(() -> {
 			WondrousWildsEntities.spawnPlacements();
 
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.PURPLE_VIOLET.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.PINK_VIOLET.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.RED_VIOLET.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.WHITE_VIOLET.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.YELLOW_BIRCH_LEAVES.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.ORANGE_BIRCH_LEAVES.get());
+			ComposterBlock.add(0.3F, WondrousWildsBlocks.RED_BIRCH_LEAVES.get());
+			ComposterBlock.add(0.5F, WondrousWildsBlocks.SMALL_POLYPORE.get());
+			ComposterBlock.add(0.65F, WondrousWildsBlocks.BIG_POLYPORE.get());
+
 			FlowerPotBlock pot = (FlowerPotBlock) Blocks.FLOWER_POT;
 
 			pot.addPlant(WondrousWildsBlocks.PURPLE_VIOLET.getId(), WondrousWildsBlocks.POTTED_PURPLE_VIOLET);
 			pot.addPlant(WondrousWildsBlocks.PINK_VIOLET.getId(), WondrousWildsBlocks.POTTED_PINK_VIOLET);
 			pot.addPlant(WondrousWildsBlocks.RED_VIOLET.getId(), WondrousWildsBlocks.POTTED_RED_VIOLET);
 			pot.addPlant(WondrousWildsBlocks.WHITE_VIOLET.getId(), WondrousWildsBlocks.POTTED_WHITE_VIOLET);
+
+			FireBlock fire = (FireBlock) Blocks.FIRE;
+			// Hollow Logs
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_OAK_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_SPRUCE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_BIRCH_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_JUNGLE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_ACACIA_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_DARK_OAK_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_MANGROVE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_DEAD_BIRCH_LOG.get(), 5, 5);
+			// Stripped Hollow Logs
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_OAK_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_SPRUCE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_BIRCH_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_JUNGLE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_ACACIA_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_DARK_OAK_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.HOLLOW_STRIPPED_MANGROVE_LOG.get(), 5, 5);
+			fire.setFlammable(WondrousWildsBlocks.BIRCH_TREE_HOLLOW.get(), 5, 5);
+			// Leaves
+			fire.setFlammable(WondrousWildsBlocks.YELLOW_BIRCH_LEAVES.get(), 30, 60);
+			fire.setFlammable(WondrousWildsBlocks.ORANGE_BIRCH_LEAVES.get(), 30, 60);
+			fire.setFlammable(WondrousWildsBlocks.RED_BIRCH_LEAVES.get(), 30, 60);
+			// Plants
+			fire.setFlammable(WondrousWildsBlocks.PURPLE_VIOLET.get(), 60, 100);
+			fire.setFlammable(WondrousWildsBlocks.PINK_VIOLET.get(), 60, 100);
+			fire.setFlammable(WondrousWildsBlocks.RED_VIOLET.get(), 60, 100);
+			fire.setFlammable(WondrousWildsBlocks.WHITE_VIOLET.get(), 60, 100);
 		});
 	}
 
