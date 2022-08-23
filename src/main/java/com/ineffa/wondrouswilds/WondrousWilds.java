@@ -18,6 +18,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FlowerPotBlock;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.minecraftforge.common.data.ExistingFileHelper;
@@ -28,6 +29,7 @@ import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -60,10 +62,11 @@ public class WondrousWilds {
 		LOGGER.info("Wondrous Wilds initializing!");
 
 		GeckoLibMod.DISABLE_IN_DEV = true;
-		GeckoLib.initialize();
+		//GeckoLib.initialize();
 
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
 
+		bus.addListener(this::setup);
 		bus.addListener(this::clientSetup);
 		bus.addListener(this::gatherData);
 
@@ -90,6 +93,19 @@ public class WondrousWilds {
 		WondrousWildsBlocks.initialize();
 
 		WondrousWildsFeatures.initialize();
+	}
+
+	public void setup(FMLCommonSetupEvent event) {
+		event.enqueueWork(() -> {
+			WondrousWildsEntities.spawnPlacements();
+
+			FlowerPotBlock pot = (FlowerPotBlock) Blocks.FLOWER_POT;
+
+			pot.addPlant(WondrousWildsBlocks.PURPLE_VIOLET.getId(), WondrousWildsBlocks.POTTED_PURPLE_VIOLET);
+			pot.addPlant(WondrousWildsBlocks.PINK_VIOLET.getId(), WondrousWildsBlocks.POTTED_PINK_VIOLET);
+			pot.addPlant(WondrousWildsBlocks.RED_VIOLET.getId(), WondrousWildsBlocks.POTTED_RED_VIOLET);
+			pot.addPlant(WondrousWildsBlocks.WHITE_VIOLET.getId(), WondrousWildsBlocks.POTTED_WHITE_VIOLET);
+		});
 	}
 
 	public void clientSetup(FMLClientSetupEvent event) {

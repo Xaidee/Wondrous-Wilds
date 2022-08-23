@@ -38,7 +38,7 @@ public class WoodpeckerFakePlayer extends FakeServerPlayerEntity {
 
     @Override
     public void setItemInHand(InteractionHand hand, ItemStack stack) {
-        if (hand == InteractionHand.MAIN_HAND) this.woodpecker.equipStack(EquipmentSlot.MAINHAND, stack);
+        if (hand == InteractionHand.MAIN_HAND) this.woodpecker.setItemSlot(EquipmentSlot.MAINHAND, stack);
 
         else if (hand == InteractionHand.OFF_HAND) this.woodpecker.spawnAtLocation(stack);
 

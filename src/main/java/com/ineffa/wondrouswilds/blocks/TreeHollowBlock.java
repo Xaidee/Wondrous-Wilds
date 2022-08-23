@@ -61,7 +61,7 @@ public class TreeHollowBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
-        return world.isClientSide ? null : TreeHollowBlock.checkType(type, WondrousWildsBlocks.BlockEntities.TREE_HOLLOW, TreeHollowBlockEntity::serverTick);
+        return world.isClientSide ? null : TreeHollowBlock.createTickerHelper(type, WondrousWildsBlocks.BlockEntities.TREE_HOLLOW.get(), TreeHollowBlockEntity::serverTick);
     }
 
     @Override

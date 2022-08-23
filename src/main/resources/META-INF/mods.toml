@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+issueTrackerURL="https://github.com/xaidee/Wondrous-Wilds/issues"
+license="GNU Lesser General Public License v3.0"
+
+[[mods]]
+    modId="wondrouswilds"
+    version="${file.jarVersion}"
+    displayName="Wondrous Wilds"
+    displayURL="https://www.curseforge.com/minecraft/mc-mods/wondrous-wilds"
+    logoFile="assets/wondrouswilds/wondrous_wilds_logo.png"
+    logoBlur=false
+    authors="Ineffa"
+    credits="LudoCrypt, Xaidee"
+    description='''
+    Massively improves Minecraft's overworld, aiming to be an expansion on "The Wild Update" and what it should have been
+    '''
+
+[[dependencies.wondrouswilds]]
+    modId="forge"
+    mandatory=true
+    versionRange="[41.1.0,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.wondrouswilds]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.19,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.wondrouswilds]]
+    modId="geckolib3"
+    mandatory=true
+    versionRange="[3.1.5,)"
+    ordering="AFTER"
+    side="BOTH"
