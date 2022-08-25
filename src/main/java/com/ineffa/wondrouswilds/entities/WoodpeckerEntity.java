@@ -4,53 +4,60 @@ import com.ineffa.wondrouswilds.blocks.TreeHollowBlock;
 import com.ineffa.wondrouswilds.blocks.entity.InhabitableNestBlockEntity;
 import com.ineffa.wondrouswilds.entities.ai.*;
 import com.ineffa.wondrouswilds.networking.packets.s2c.WoodpeckerDrillPacket;
-import com.ineffa.wondrouswilds.registry.*;
+import com.ineffa.wondrouswilds.registry.WondrousWildsEntities;
+import com.ineffa.wondrouswilds.registry.WondrousWildsItems;
+import com.ineffa.wondrouswilds.registry.WondrousWildsSounds;
+import com.ineffa.wondrouswilds.registry.WondrousWildsTags;
+import com.ineffa.wondrouswilds.util.WondrousWildsUtils;
 import com.ineffa.wondrouswilds.util.fakeplayer.WoodpeckerFakePlayer;
-import io.netty.buffer.Unpooled;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.ServerPlayerConnection;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.tags.BlockTags;
-import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
-import net.minecraft.util.TimeUtil;
-import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.DifficultyInstance;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.control.BodyRotationControl;
-import net.minecraft.world.entity.ai.goal.*;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.ItemLike;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ServerLevelAccessor;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RotatedPillarBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.network.NetworkEvent;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.PillarBlock;
+import net.minecraft.entity.*;
+import net.minecraft.entity.ai.control.BodyControl;
+import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.mob.Angerable;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.PassiveEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtHelper;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.particle.DefaultParticleType;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.tag.BlockTags;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.TimeHelper;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.intprovider.UniformIntProvider;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.world.LocalDifficulty;
+import net.minecraft.world.ServerWorldAccess;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib3.core.IAnimatable;
 import software.bernie.geckolib3.core.PlayState;
@@ -78,16 +85,16 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
 
     private int playSessionsBeforeTame;
 
-    private final Predicate<WoodpeckerEntity> AVOID_WOODPECKER_PREDICATE = otherWoodpecker -> this.getLastHurtByMob() == otherWoodpecker;
+    private final Predicate<WoodpeckerEntity> AVOID_WOODPECKER_PREDICATE = otherWoodpecker -> this.getAttacker() == otherWoodpecker;
 
-    private static final EntityDataAccessor<BlockPos> CLING_POS = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.BLOCK_POS);
-    private static final EntityDataAccessor<Integer> PECK_CHAIN_LENGTH = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> PECK_CHAIN_TICKS = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> DRUMMING_TICKS = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> ANGER_TICKS = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Byte> CHIRP_DELAY = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.BYTE);
-    private static final EntityDataAccessor<Boolean> TAME = SynchedEntityData.defineId(WoodpeckerEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final UniformInt ANGER_TIME_RANGE = TimeUtil.rangeOfSeconds(10, 15);
+    private static final TrackedData<BlockPos> CLING_POS = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.BLOCK_POS);
+    private static final TrackedData<Integer> PECK_CHAIN_LENGTH = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> PECK_CHAIN_TICKS = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> DRUMMING_TICKS = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Integer> ANGER_TICKS = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Byte> CHIRP_DELAY = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.BYTE);
+    private static final TrackedData<Boolean> TAME = DataTracker.registerData(WoodpeckerEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final UniformIntProvider ANGER_TIME_RANGE = TimeHelper.betweenSeconds(10, 15);
     @Nullable
     private UUID angryAt;
 
@@ -95,62 +102,62 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
 
     private int consecutivePecks;
 
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private int cannotEnterNestTicks;
     @Nullable
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private BlockPos nestPos;
 
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private byte chirpCount;
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private byte nextChirpCount;
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private byte nextChirpSpeed;
-    @OnlyIn(Dist.DEDICATED_SERVER)
+    @Environment(value = EnvType.SERVER)
     private float nextChirpPitch;
 
-    @OnlyIn(Dist.CLIENT)
+    @Environment(value = EnvType.CLIENT)
     public float flapSpeed;
-    @OnlyIn(Dist.CLIENT)
+    @Environment(value = EnvType.CLIENT)
     public float prevFlapAngle;
-    @OnlyIn(Dist.CLIENT)
+    @Environment(value = EnvType.CLIENT)
     public float flapAngle;
 
-    public WoodpeckerEntity(EntityType<? extends WoodpeckerEntity> entityType, Level world) {
+    public WoodpeckerEntity(EntityType<? extends WoodpeckerEntity> entityType, World world) {
         super(entityType, world);
 
-        //this.ignoreCameraFrustum = true;
+        this.ignoreCameraFrustum = true;
     }
 
-    public static AttributeSupplier.Builder createWoodpeckerAttributes() {
-        return Animal.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 8.0D)
-                .add(Attributes.ATTACK_DAMAGE, 3.0D)
-                .add(Attributes.FLYING_SPEED, 0.25D)
-                .add(Attributes.MOVEMENT_SPEED, 0.25D);
-    }
-
-    @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-
-        this.entityData.define(CLING_POS, BlockPos.ZERO);
-        this.entityData.define(PECK_CHAIN_LENGTH, 0);
-        this.entityData.define(PECK_CHAIN_TICKS, 0);
-        this.entityData.define(DRUMMING_TICKS, 0);
-        this.entityData.define(ANGER_TICKS, 0);
-        this.entityData.define(CHIRP_DELAY, (byte) 0);
-        this.entityData.define(TAME, false);
+    public static DefaultAttributeContainer.Builder createWoodpeckerAttributes() {
+        return AnimalEntity.createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 8.0D)
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 3.0D)
+                .add(EntityAttributes.GENERIC_FLYING_SPEED, 0.25D)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.25D);
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag nbt) {
-        super.addAdditionalSaveData(nbt);
+    protected void initDataTracker() {
+        super.initDataTracker();
 
-        nbt.put(CLING_POS_KEY, NbtUtils.writeBlockPos(this.getClingPos()));
+        this.dataTracker.startTracking(CLING_POS, BlockPos.ORIGIN);
+        this.dataTracker.startTracking(PECK_CHAIN_LENGTH, 0);
+        this.dataTracker.startTracking(PECK_CHAIN_TICKS, 0);
+        this.dataTracker.startTracking(DRUMMING_TICKS, 0);
+        this.dataTracker.startTracking(ANGER_TICKS, 0);
+        this.dataTracker.startTracking(CHIRP_DELAY, (byte) 0);
+        this.dataTracker.startTracking(TAME, false);
+    }
 
-        if (this.hasNestPos()) nbt.put(NEST_POS_KEY, NbtUtils.writeBlockPos(Objects.requireNonNull(this.getNestPos())));
+    @Override
+    public void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
+
+        nbt.put(CLING_POS_KEY, NbtHelper.fromBlockPos(this.getClingPos()));
+
+        if (this.hasNestPos()) nbt.put(NEST_POS_KEY, NbtHelper.fromBlockPos(Objects.requireNonNull(this.getNestPos())));
 
         nbt.putBoolean(TAME_KEY, this.isTame());
 
@@ -158,13 +165,13 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag nbt) {
-        super.readAdditionalSaveData(nbt);
+    public void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
 
-        BlockPos clingPos = NbtUtils.readBlockPos(nbt.getCompound(CLING_POS_KEY));
-        if (!this.isClinging() && !clingPos.equals(BlockPos.ZERO)) this.tryClingingTo(clingPos);
+        BlockPos clingPos = NbtHelper.toBlockPos(nbt.getCompound(CLING_POS_KEY));
+        if (!this.isClinging() && !WondrousWildsUtils.isPosAtWorldOrigin(clingPos)) this.tryClingingTo(clingPos);
 
-        if (nbt.contains(NEST_POS_KEY)) this.setNestPos(NbtUtils.readBlockPos(nbt.getCompound(NEST_POS_KEY)));
+        if (nbt.contains(NEST_POS_KEY)) this.setNestPos(NbtHelper.toBlockPos(nbt.getCompound(NEST_POS_KEY)));
 
         this.setTame(nbt.getBoolean(TAME_KEY));
 
@@ -175,31 +182,45 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
         if (this.getPlaySessionsBeforeTame() <= 0 && !this.isTame()) this.setPlaySessionsBeforeTame(this.getRandom().nextBetween(5, 15));
 
-        this.populateDefaultEquipmentSlots(world.getRandom(), difficulty);
+        this.initEquipment(world.getRandom(), difficulty);
 
-        return super.finalizeSpawn(world, difficulty, spawnReason, entityData, entityNbt);
+        return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
 
     @Override
-    protected void populateDefaultEquipmentSlots(RandomSource random, DifficultyInstance localDifficulty) {
+    protected void initEquipment(Random random, LocalDifficulty localDifficulty) {
         if (random.nextInt(4) != 0) return;
 
-        ItemLike itemToHold;
+        // ITEM CHANCES:
+        // 1% Wooden Axe
+        // 4% Music Disc
+        // 8% Glass Bottle
+        // 12% Honeycomb
+        // 18% Bone Meal
+        // 24% Flower
+        // 33% Seeds
+        Item itemToHold;
         int i = 1 + random.nextInt(100);
         if (i <= 1) itemToHold = Items.WOODEN_AXE;
         else if (i <= 5) itemToHold = Items.MUSIC_DISC_OTHERSIDE;
         else if (i <= 13) itemToHold = Items.GLASS_BOTTLE;
         else if (i <= 25) itemToHold = Items.HONEYCOMB;
-        else if (i <= 50) itemToHold = Items.BONE_MEAL;
-        else itemToHold = switch (random.nextInt(5)) {
-                default -> Items.LILY_OF_THE_VALLEY;
-                case 1 -> WondrousWildsBlocks.PURPLE_VIOLET.get();
-                case 2 -> WondrousWildsBlocks.PINK_VIOLET.get();
-                case 3 -> WondrousWildsBlocks.RED_VIOLET.get();
-                case 4 -> WondrousWildsBlocks.WHITE_VIOLET.get();
+        else if (i <= 43) itemToHold = Items.BONE_MEAL;
+        else if (i <= 67) itemToHold = switch (random.nextInt(5)) {
+            default -> Items.LILY_OF_THE_VALLEY;
+            case 1 -> WondrousWildsItems.PURPLE_VIOLET;
+            case 2 -> WondrousWildsItems.PINK_VIOLET;
+            case 3 -> WondrousWildsItems.RED_VIOLET;
+            case 4 -> WondrousWildsItems.WHITE_VIOLET;
+        };
+        else itemToHold = switch (random.nextInt(4)) {
+            default -> Items.WHEAT_SEEDS;
+            case 1 -> Items.BEETROOT_SEEDS;
+            case 2 -> Items.PUMPKIN_SEEDS;
+            case 3 -> Items.MELON_SEEDS;
         };
 
-        this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(itemToHold));
+        this.equipStack(EquipmentSlot.MAINHAND, new ItemStack(itemToHold));
     }
 
     @Override
@@ -210,26 +231,26 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     public BlockPos getClingPos() {
-        return this.entityData.get(CLING_POS);
+        return this.dataTracker.get(CLING_POS);
     }
 
     public void setClingPos(BlockPos pos) {
-        this.entityData.set(CLING_POS, pos);
+        this.dataTracker.set(CLING_POS, pos);
     }
 
     public boolean isClinging() {
-        BlockPos clingPos = this.entityData.get(CLING_POS);
+        BlockPos clingPos = this.dataTracker.get(CLING_POS);
         return clingPos != null && !WondrousWildsUtils.isPosAtWorldOrigin(clingPos);
     }
 
     public boolean tryClingingTo(BlockPos clingPos) {
-        Direction clingSide = Direction.from2DDataValue(this.getRandom().nextInt(4));
+        Direction clingSide = Direction.fromHorizontal(this.getRandom().nextInt(4));
         double closestSideDistance = 100.0D;
         for (Direction side : HORIZONTAL_DIRECTIONS) {
-            BlockPos offsetPos = clingPos.relative(side);
-            if (!this.getLevel().isEmptyBlock(offsetPos) || !this.getLevel().getBlockState(clingPos).isFaceSturdy(this.getLevel(), clingPos, side)) continue;
+            BlockPos offsetPos = clingPos.offset(side);
+            if (!this.getWorld().isAir(offsetPos) || !this.getWorld().getBlockState(clingPos).isSideSolidFullSquare(this.getWorld(), clingPos, side)) continue;
 
-            double distanceFromSide = this.getOnPos().distSqr(offsetPos);
+            double distanceFromSide = this.getBlockPos().getSquaredDistance(offsetPos);
             if (distanceFromSide < closestSideDistance) {
                 clingSide = side;
                 closestSideDistance = distanceFromSide;
@@ -240,8 +261,8 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
         this.setClingPos(clingPos);
         this.clingSide = clingSide;
 
-        BlockPos pos = clingPos.relative(clingSide);
-        this.setPos(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
+        BlockPos pos = clingPos.offset(clingSide);
+        this.setPosition(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
 
         this.setFlying(false);
 
@@ -249,14 +270,14 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     public void stopClinging() {
-        this.setClingPos(BlockPos.ZERO);
+        this.setClingPos(BlockPos.ORIGIN);
 
         if (this.isPecking()) this.stopPecking(true);
         else this.resetConsecutivePecks();
     }
 
     public boolean hasValidClingPos() {
-        return this.canClingToPos(this.getClingPos(), false, this.clingSide) && this.getLevel().isEmptyBlock(this.getOnPos());
+        return this.canClingToPos(this.getClingPos(), false, this.clingSide) && this.getWorld().isAir(this.getBlockPos());
     }
 
     public boolean canClingToPos(BlockPos pos, boolean checkForSpace, @Nullable Direction... sidesToCheck) {
@@ -265,7 +286,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
         if (checkForSpace) {
             boolean hasOpenSpace = false;
             for (Direction direction : directionsToCheck) {
-                if (this.getLevel().isEmptyBlock(pos.relative(direction))) {
+                if (this.getWorld().isAir(pos.offset(direction))) {
                     hasOpenSpace = true;
                     break;
                 }
@@ -273,27 +294,27 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
             if (!hasOpenSpace) return false;
         }
 
-        BlockState state = this.getLevel().getBlockState(pos);
+        BlockState state = this.getWorld().getBlockState(pos);
 
         boolean hasSolidSide = false;
         for (Direction direction : directionsToCheck) {
-            if (state.isFaceSturdy(this.getLevel(), pos, direction)) {
+            if (state.isSideSolidFullSquare(this.getWorld(), pos, direction)) {
                 hasSolidSide = true;
                 break;
             }
         }
         if (!hasSolidSide) return false;
 
-        return (state.getBlock() instanceof RotatedPillarBlock && state.is(BlockTags.OVERWORLD_NATURAL_LOGS) && state.getValue(RotatedPillarBlock.AXIS).isVertical()) || state.is(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH);
+        return (state.getBlock() instanceof PillarBlock && state.isIn(BlockTags.OVERWORLD_NATURAL_LOGS) && state.get(PillarBlock.AXIS).isVertical()) || state.isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH);
     }
 
     public boolean canMakeNestInPos(BlockPos pos) {
-        Block block = this.getLevel().getBlockState(pos).getBlock();
+        Block block = this.getWorld().getBlockState(pos).getBlock();
         return TREE_HOLLOW_MAP.containsKey(block);
     }
 
     public boolean canInteractWithPos(BlockPos pos) {
-        return this.getLevel().getBlockState(pos).is(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH);
+        return this.getWorld().getBlockState(pos).isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH);
     }
 
     public boolean isMakingNest() {
@@ -305,19 +326,19 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     public int getCurrentPeckChainLength() {
-        return this.entityData.get(PECK_CHAIN_LENGTH);
+        return this.dataTracker.get(PECK_CHAIN_LENGTH);
     }
 
     public void setPeckChainLength(int length) {
-        this.entityData.set(PECK_CHAIN_LENGTH, length);
+        this.dataTracker.set(PECK_CHAIN_LENGTH, length);
     }
 
     public int getPeckChainTicks() {
-        return this.entityData.get(PECK_CHAIN_TICKS);
+        return this.dataTracker.get(PECK_CHAIN_TICKS);
     }
 
     public void setPeckChainTicks(int ticks) {
-        this.entityData.set(PECK_CHAIN_TICKS, ticks);
+        this.dataTracker.set(PECK_CHAIN_TICKS, ticks);
     }
 
     public int calculateTicksForPeckChain(int chainLength) {
@@ -353,11 +374,11 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     public byte getChirpDelay() {
-        return this.entityData.get(CHIRP_DELAY);
+        return this.dataTracker.get(CHIRP_DELAY);
     }
 
     public void setChirpDelay(byte speed) {
-        this.entityData.set(CHIRP_DELAY, speed);
+        this.dataTracker.set(CHIRP_DELAY, speed);
     }
 
     public void startChirping(byte count, byte speed) {
@@ -367,7 +388,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
         this.nextChirpSpeed = speed;
         this.setChirpDelay(speed);
 
-        this.nextChirpPitch = this.getVoicePitch();
+        this.nextChirpPitch = this.getSoundPitch();
     }
 
     public void stopChirping() {
@@ -402,19 +423,19 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     public boolean isTame() {
-        return this.entityData.get(TAME);
+        return this.dataTracker.get(TAME);
     }
 
     public void setTame(boolean tame) {
-        this.entityData.set(TAME, tame);
+        this.dataTracker.set(TAME, tame);
     }
 
     public int getDrummingTicks() {
-        return this.entityData.get(DRUMMING_TICKS);
+        return this.dataTracker.get(DRUMMING_TICKS);
     }
 
     public void setDrummingTicks(int ticks) {
-        this.entityData.set(DRUMMING_TICKS, ticks);
+        this.dataTracker.set(DRUMMING_TICKS, ticks);
     }
 
     public boolean isDrumming() {
@@ -453,14 +474,14 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
 
     @Override
     public int getCannotInhabitNestTicks() {
-        if (this.getLevel().isClientSide) return 0;
+        if (this.getWorld().isClient()) return 0;
 
         return this.cannotEnterNestTicks;
     }
 
     @Override
     public void setCannotInhabitNestTicks(int ticks) {
-        if (this.getLevel().isClientSide) return;
+        if (this.getWorld().isClient()) return;
 
         this.cannotEnterNestTicks = ticks;
     }
@@ -469,7 +490,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     public boolean shouldReturnToNest() {
         if (this.getCannotInhabitNestTicks() > 0 || !this.hasNestPos()) return false;
 
-        return this.getLevel().isNight() || this.getLevel().isRaining();
+        return this.getWorld().isNight() || this.getWorld().isRaining();
     }
 
     @Override
@@ -483,33 +504,33 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     @Override
-    public int getRemainingPersistentAngerTime() {
-        return this.entityData.get(ANGER_TICKS);
+    public int getAngerTime() {
+        return this.dataTracker.get(ANGER_TICKS);
     }
 
     @Override
-    public void setRemainingPersistentAngerTime(int ticks) {
-        this.entityData.set(ANGER_TICKS, ticks);
+    public void setAngerTime(int ticks) {
+        this.dataTracker.set(ANGER_TICKS, ticks);
     }
 
     @Nullable
     @Override
-    public UUID getPersistentAngerTarget() {
+    public UUID getAngryAt() {
         return this.angryAt;
     }
 
     @Override
-    public void setPersistentAngerTarget(@Nullable UUID angryAt) {
+    public void setAngryAt(@Nullable UUID angryAt) {
         this.angryAt = angryAt;
     }
 
     @Override
-    public void startPersistentAngerTimer() {
-        this.setRemainingPersistentAngerTime(ANGER_TIME_RANGE.sample(this.getRandom()));
+    public void chooseRandomAngerTime() {
+        this.setAngerTime(ANGER_TIME_RANGE.get(this.getRandom()));
     }
 
     public boolean canWander() {
-        return !this.isClinging() && !this.hasAttackTarget() && this.getLastHurtByMob() == null;
+        return !this.isClinging() && !this.hasAttackTarget() && this.getAttacker() == null;
     }
 
     public boolean hasAttackTarget() {
@@ -517,25 +538,25 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     @Override
-    protected void registerGoals() {
-        this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new PanicGoal(this, 1.5D));
-        this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, WoodpeckerEntity.class, 24.0F, 1.0D, 1.5D, entity -> AVOID_WOODPECKER_PREDICATE.test((WoodpeckerEntity) entity)));
-        this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Player.class, 16.0F, 1.0D, 1.5D, entity -> !this.isTame()));
-        this.goalSelector.addGoal(4, new WoodpeckerAttackGoal(this, 1.0D, true));
-        this.goalSelector.addGoal(5, new FindOrReturnToTreeHollowGoal(this, 1.0D, 24, 24));
-        this.goalSelector.addGoal(6, new WoodpeckerPlayWithBlockGoal(this, 1.0D, 24, 24));
-        this.goalSelector.addGoal(7, new WoodpeckerClingToLogGoal(this, 1.0D, 24, 24));
-        this.goalSelector.addGoal(8, new WoodpeckerWanderLandGoal(this, 1.0D));
-        this.goalSelector.addGoal(8, new WoodpeckerWanderFlyingGoal(this));
-        this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 16.0F));
-        this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Mob.class, 16.0F));
-        this.goalSelector.addGoal(10, new RandomLookAroundGoal(this));
+    protected void initGoals() {
+        this.goalSelector.add(0, new SwimGoal(this));
+        this.goalSelector.add(1, new EscapeDangerGoal(this, 1.5D));
+        this.goalSelector.add(2, new FleeEntityGoal<>(this, WoodpeckerEntity.class, 24.0F, 1.0D, 1.5D, entity -> AVOID_WOODPECKER_PREDICATE.test((WoodpeckerEntity) entity)));
+        this.goalSelector.add(3, new WoodpeckerAttackGoal(this, 1.0D, true));
+        this.goalSelector.add(4, new FleeEntityGoal<>(this, PlayerEntity.class, 16.0F, 1.0D, 1.5D, entity -> !this.isTame()));
+        this.goalSelector.add(5, new FindOrReturnToBlockNestGoal(this, 1.0D, 24, 24));
+        this.goalSelector.add(6, new WoodpeckerPlayWithBlockGoal(this, 1.0D, 24, 24));
+        this.goalSelector.add(7, new WoodpeckerClingToLogGoal(this, 1.0D, 24, 24));
+        this.goalSelector.add(8, new WoodpeckerWanderLandGoal(this, 1.0D));
+        this.goalSelector.add(8, new WoodpeckerWanderFlyingGoal(this));
+        this.goalSelector.add(9, new LookAtEntityGoal(this, PlayerEntity.class, 16.0F));
+        this.goalSelector.add(9, new LookAtEntityGoal(this, MobEntity.class, 16.0F));
+        this.goalSelector.add(10, new LookAroundGoal(this));
     }
 
     @Nullable
     @Override
-    public AgeableMob getBreedOffspring(ServerLevel world, AgeableMob entity) {
+    public PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
         return null;
     }
 
@@ -543,13 +564,13 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     public void tick() {
         super.tick();
 
-        if (this.getLevel().isClientSide) {
-            this.flapSpeed = Mth.clamp(1.0F - (this.swingTime * 0.5F), 0.0F, 1.0F);
+        if (this.getWorld().isClient()) {
+            this.flapSpeed = MathHelper.clamp(1.0F - (this.limbDistance * 0.5F), 0.0F, 1.0F);
             this.prevFlapAngle = this.flapAngle;
             this.flapAngle += this.flapSpeed;
         }
         else {
-            if (this.hasNestPos() && !(this.getWorld().getBlockEntity(this.getNestPos()) instanceof TreeHollowBlockEntity)) this.clearNestPos();
+            if (this.hasNestPos() && !(this.getWorld().getBlockEntity(this.getNestPos()) instanceof InhabitableNestBlockEntity)) this.clearNestPos();
 
             if (this.isPecking()) {
                 if (this.getPeckChainTicks() <= 0) this.stopPecking(false);
@@ -558,51 +579,51 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
                     if (this.getPeckChainTicks() % 10 == 0 && this.getPeckChainTicks() != this.calculateTicksForPeckChain(this.getCurrentPeckChainLength())) {
                         SoundEvent peckSound = null;
 
-                        if (this.hasAttackTarget() && this.isAngry()) {
+                        if (this.isAttacking() && this.hasAttackTarget()) {
                             LivingEntity attackTarget = this.getTarget();
-                            double distanceFromTarget = this.distanceToSqr(attackTarget.getX(), attackTarget.getY(), attackTarget.getZ());
+                            double distanceFromTarget = this.squaredDistanceTo(attackTarget.getX(), attackTarget.getY(), attackTarget.getZ());
 
-                            if (distanceFromTarget <= this.getPeckReach()) this.canAttack(attackTarget);
+                            if (distanceFromTarget <= this.getPeckReach()) this.tryAttack(attackTarget);
                         }
                         else if (this.isClinging() && this.canMakeNestInPos(this.getClingPos()) && this.hasValidClingPos()) {
-                            BlockState peckState = this.getLevel().getBlockState(this.getClingPos());
+                            BlockState peckState = this.getWorld().getBlockState(this.getClingPos());
 
                             this.setConsecutivePecks(this.getConsecutivePecks() + 1);
                             if (this.getConsecutivePecks() >= PECKS_NEEDED_FOR_NEST) {
                                 this.stopPecking(true);
 
                                 Block clingBlock = peckState.getBlock();
-                                this.getLevel().setBlockAndUpdate(this.getClingPos(), TREE_HOLLOW_MAP.get(clingBlock).defaultBlockState().setValue(TreeHollowBlock.FACING, this.clingSide));
+                                this.getWorld().setBlockState(this.getClingPos(), TREE_HOLLOW_MAP.get(clingBlock).getDefaultState().with(TreeHollowBlock.FACING, this.clingSide));
                             }
 
-                            FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+                            PacketByteBuf buf = PacketByteBufs.create();
                             buf.writeBlockPos(this.getClingPos());
-                            buf.writeEnum(this.clingSide);
-                            //for (ServerPlayer receiver : PlayerList.tracking(this)) send(WoodpeckerDrillPacket.ID, buf);
+                            buf.writeEnumConstant(this.clingSide);
+                            for (ServerPlayerEntity receiver : PlayerLookup.tracking(this)) ServerPlayNetworking.send(receiver, WoodpeckerDrillPacket.ID, buf);
 
-                            peckSound = peckState.getSoundType().getHitSound();
+                            peckSound = peckState.getSoundGroup().getHitSound();
                         }
                         else {
-                            BlockHitResult hitResult = (BlockHitResult) this.pick(this.getPeckReach(), 0.0F, false);
-                            BlockState peckState = this.getLevel().getBlockState(hitResult.getBlockPos());
+                            BlockHitResult hitResult = (BlockHitResult) this.raycast(this.getPeckReach(), 0.0F, false);
+                            BlockState peckState = this.getWorld().getBlockState(hitResult.getBlockPos());
 
-                            if (peckState.is(WondrousWildsTags.Blocks.WOODPECKERS_INTERACT_WITH)) {
+                            if (peckState.isIn(WondrousWildsTags.BlockTags.WOODPECKERS_INTERACT_WITH)) {
                                 WoodpeckerFakePlayer fakePlayer = new WoodpeckerFakePlayer(this);
-                                InteractionHand hand = InteractionHand.MAIN_HAND;
+                                Hand hand = Hand.MAIN_HAND;
 
                                 boolean successfulInteraction;
 
-                                if (!(successfulInteraction = (peckState.use(this.getLevel(), fakePlayer, hand, hitResult)).consumesAction())) {
-                                    ItemStack heldItem = fakePlayer.getItemInHand(hand);
+                                if (!(successfulInteraction = (peckState.onUse(this.getWorld(), fakePlayer, hand, hitResult)).isAccepted())) {
+                                    ItemStack heldItem = fakePlayer.getMainHandStack();
                                     if (!heldItem.isEmpty()) {
-                                        successfulInteraction = heldItem.useOn(new UseOnContext(fakePlayer, hand, hitResult)).consumesAction();
+                                        successfulInteraction = heldItem.useOnBlock(new ItemUsageContext(fakePlayer, hand, hitResult)).isAccepted();
                                     }
                                 }
 
                                 if (successfulInteraction) this.setConsecutivePecks(this.getConsecutivePecks() + 1);
                             }
 
-                            peckSound = peckState.getSoundType().getHitSound();
+                            peckSound = peckState.getSoundGroup().getHitSound();
                         }
 
                         if (peckSound != null) this.playSound(peckSound, 0.75F, 1.5F);
@@ -637,10 +658,10 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
                     this.setFlying(true);
                 }
                 else {
-                    this.setYRot(this.clingSide.getOpposite().get2DDataValue() * 90.0F);
-                    this.setYBodyRot(this.getYRot());
+                    this.setYaw(this.clingSide.getOpposite().getHorizontal() * 90.0F);
+                    this.setBodyYaw(this.getYaw());
 
-                    if (this.isPecking() || this.isDrumming()) this.setYHeadRot(this.getYRot());
+                    if (this.isPecking() || this.isDrumming()) this.setHeadYaw(this.getYaw());
                 }
             }
 
@@ -667,91 +688,91 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
                 }
             }
             else {
-                if (this.getDrummingTicks() == 45) this.playSound(WondrousWildsSounds.WOODPECKER_DRUM.get(), 4.0F, 1.0F);
+                if (this.getDrummingTicks() == 45) this.playSound(WondrousWildsSounds.WOODPECKER_DRUM, 4.0F, 1.0F);
 
                 this.setDrummingTicks(this.getDrummingTicks() - 1);
             }
 
-            this.updatePersistentAnger((ServerLevel) this.getLevel(), false);
+            this.tickAngerLogic((ServerWorld) this.getWorld(), false);
         }
     }
 
     @Override
-    public InteractionResult mobInteract(Player player, InteractionHand hand) {
-        ItemStack playerHeldStack = player.getItemInHand(hand);
-        ItemStack woodpeckerHeldStack = this.getItemInHand(InteractionHand.MAIN_HAND);
+    public ActionResult interactMob(PlayerEntity player, Hand hand) {
+        ItemStack playerHeldStack = player.getStackInHand(hand);
+        ItemStack woodpeckerHeldStack = this.getStackInHand(Hand.MAIN_HAND);
 
         if (this.isTame()) {
-            if (hand == InteractionHand.MAIN_HAND && playerHeldStack.isEmpty() && !woodpeckerHeldStack.isEmpty()) {
+            if (hand == Hand.MAIN_HAND && playerHeldStack.isEmpty() && !woodpeckerHeldStack.isEmpty()) {
                 ItemStack stackToTransfer = woodpeckerHeldStack.copy();
 
-                if (player.isCrouching()) {
+                if (player.isSneaking()) {
                     stackToTransfer.setCount(1);
-                    woodpeckerHeldStack.shrink(1);
+                    woodpeckerHeldStack.decrement(1);
                 }
-                else this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                else this.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
 
-                if (!player.addItem(stackToTransfer)) this.spawnAtLocation(stackToTransfer);
+                if (!player.giveItemStack(stackToTransfer)) this.dropStack(stackToTransfer);
 
-                return InteractionResult.SUCCESS;
+                return ActionResult.SUCCESS;
             }
 
             transferToWoodpecker: if (!playerHeldStack.isEmpty()) {
-                int woodpeckerSpaceRemaining = woodpeckerHeldStack.getMaxStackSize() - woodpeckerHeldStack.getCount();
+                int woodpeckerSpaceRemaining = woodpeckerHeldStack.getMaxCount() - woodpeckerHeldStack.getCount();
                 if (woodpeckerSpaceRemaining <= 0) break transferToWoodpecker;
 
                 boolean isNewItemType = playerHeldStack.getItem() != woodpeckerHeldStack.getItem();
                 if (isNewItemType && !woodpeckerHeldStack.isEmpty()) break transferToWoodpecker;
 
-                if (!player.isCrouching()) {
+                if (!player.isSneaking()) {
                     if (!isNewItemType) {
                         int amountToTransfer = Math.min(playerHeldStack.getCount(), woodpeckerSpaceRemaining);
 
-                        if (!player.getAbilities().invulnerable) playerHeldStack.shrink(amountToTransfer);
-                        woodpeckerHeldStack.shrink(amountToTransfer);
+                        if (!player.getAbilities().creativeMode) playerHeldStack.decrement(amountToTransfer);
+                        woodpeckerHeldStack.increment(amountToTransfer);
 
                     }
                     else {
-                        if (!player.getAbilities().invulnerable) player.setItemInHand(hand, ItemStack.EMPTY);
-                        this.setItemInHand(InteractionHand.MAIN_HAND, playerHeldStack.copy());
+                        if (!player.getAbilities().creativeMode) player.setStackInHand(hand, ItemStack.EMPTY);
+                        this.setStackInHand(Hand.MAIN_HAND, playerHeldStack.copy());
                     }
-                    return InteractionResult.SUCCESS;
+                    return ActionResult.SUCCESS;
                 }
 
                 ItemStack playerHeldStackCopy = playerHeldStack.copy();
 
-                if (!player.getAbilities().invulnerable) playerHeldStack.shrink(1);
+                if (!player.getAbilities().creativeMode) playerHeldStack.decrement(1);
 
                 if (isNewItemType) {
                     playerHeldStackCopy.setCount(1);
-                    this.setItemInHand(InteractionHand.MAIN_HAND, playerHeldStackCopy);
+                    this.setStackInHand(Hand.MAIN_HAND, playerHeldStackCopy);
                 }
-                else woodpeckerHeldStack.shrink(1);
+                else woodpeckerHeldStack.increment(1);
 
-                return InteractionResult.SUCCESS;
+                return ActionResult.SUCCESS;
             }
         }
 
-        else if (playerHeldStack.getItem() == WondrousWildsItems.LOVIFIER.get()) {
-            if (!this.getLevel().isClientSide) this.finishTame();
-            return InteractionResult.SUCCESS;
+        else if (playerHeldStack.getItem() == WondrousWildsItems.LOVIFIER) {
+            if (!this.getWorld().isClient()) this.finishTame();
+            return ActionResult.SUCCESS;
         }
 
-        return super.mobInteract(player, hand);
+        return super.interactMob(player, hand);
     }
 
     @Override
-    public void setItemSlot(EquipmentSlot slot, ItemStack stack) {
-        super.setItemSlot(slot, stack);
+    public void equipStack(EquipmentSlot slot, ItemStack stack) {
+        super.equipStack(slot, stack);
 
-        this.setGuaranteedDrop(slot);
+        this.updateDropChances(slot);
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        if (source.getEntity() instanceof WoodpeckerEntity) amount = 0.0F;
+    public boolean damage(DamageSource source, float amount) {
+        if (source.getAttacker() instanceof WoodpeckerEntity) amount = 0.0F;
 
-        if (super.hurt(source, amount)) {
+        if (super.damage(source, amount)) {
             this.resetConsecutivePecks();
 
             if (!this.isFlying() && !this.isDrumming()) {
@@ -764,55 +785,55 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     @Override
-    public void travel(Vec3 movementInput) {
+    public void travel(Vec3d movementInput) {
         if (!this.isFlying()) {
             super.travel(movementInput);
             return;
         }
 
-        if (this.hasRestriction() /*|| this.isLogicalSideForUpdatingMovement()*/) {
-            if (this.isInWater()) {
-                this.moveRelative(0.02F, movementInput);
-                this.move(MoverType.SELF, this.getDeltaMovement());
-                this.setDeltaMovement(this.getDeltaMovement().scale(0.8D));
+        if (this.canMoveVoluntarily() || this.isLogicalSideForUpdatingMovement()) {
+            if (this.isTouchingWater()) {
+                this.updateVelocity(0.02F, movementInput);
+                this.move(MovementType.SELF, this.getVelocity());
+                this.setVelocity(this.getVelocity().multiply(0.8D));
             }
             else if (this.isInLava()) {
-                this.moveRelative(0.02F, movementInput);
-                this.move(MoverType.SELF, this.getDeltaMovement());
-                this.setDeltaMovement(this.getDeltaMovement().scale(0.5D));
+                this.updateVelocity(0.02F, movementInput);
+                this.move(MovementType.SELF, this.getVelocity());
+                this.setVelocity(this.getVelocity().multiply(0.5D));
             }
             else {
-                this.moveRelative(this.getSpeed(), movementInput);
-                this.move(MoverType.SELF, this.getDeltaMovement());
-                this.setDeltaMovement(this.getDeltaMovement().scale(0.91D));
+                this.updateVelocity(this.getMovementSpeed(), movementInput);
+                this.move(MovementType.SELF, this.getVelocity());
+                this.setVelocity(this.getVelocity().multiply(0.91D));
             }
         }
 
-        this.calculateEntityAnimation(this, false);
+        this.updateLimbs(this, false);
     }
 
     @Override
-    public boolean hasRestriction() {
-        return super.hasRestriction() && !this.isClinging();
+    public boolean canMoveVoluntarily() {
+        return super.canMoveVoluntarily() && !this.isClinging();
     }
 
     @Override
-    public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
+    public boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
         return false;
     }
 
     @Override
-    public int getNoActionTime() {
+    public int getDespawnCounter() {
         return 0;
     }
 
     @Override
-    protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {
+    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
         return dimensions.height * 0.95F;
     }
 
     @Override
-    protected BodyRotationControl createBodyControl() {
+    protected BodyControl createBodyControl() {
         return new RelaxedBodyControl(this);
     }
 
@@ -895,7 +916,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     private <E extends IAnimatable> PlayState animationPredicate(AnimationEvent<E> event) {
-        if (this.isFlying() && this.animationPosition >= 0.9F)
+        if (this.isFlying() && this.limbDistance >= 0.9F)
             event.getController().setAnimation(new AnimationBuilder().addAnimation("flap"));
 
         else if (this.isDrumming() && this.isClinging())
@@ -908,11 +929,11 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
     }
 
     private void showTameParticles(boolean positive) {
-        SimpleParticleType particleEffect = ParticleTypes.SMOKE;
+        DefaultParticleType particleEffect = ParticleTypes.SMOKE;
         if (positive) particleEffect = ParticleTypes.HEART;
 
-        if (!this.getLevel().isClientSide && this.getLevel() instanceof ServerLevel serverWorld) {
-            serverWorld.sendParticles(particleEffect, this.getX(), this.getEyeY(), this.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.0D);
+        if (!this.getWorld().isClient() && this.getWorld() instanceof ServerWorld serverWorld) {
+            serverWorld.spawnParticles(particleEffect, this.getX(), this.getEyeY(), this.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.0D);
         }
 
         else for (int i = 0; i < 7; ++i) {
@@ -920,7 +941,7 @@ public class WoodpeckerEntity extends FlyingAndWalkingAnimalEntity implements Bl
             double e = this.getRandom().nextGaussian() * 0.02D;
             double f = this.getRandom().nextGaussian() * 0.02D;
 
-            this.getLevel().addParticle(particleEffect, this.getX(1.0D), this.getRandomY() + 0.5D, this.getZ(1.0D), d, e, f);
+            this.getWorld().addParticle(particleEffect, this.getParticleX(1.0D), this.getRandomBodyY() + 0.5D, this.getParticleZ(1.0D), d, e, f);
         }
     }
 }

@@ -5,34 +5,32 @@ import com.ineffa.wondrouswilds.entities.ai.FireflyLandOnEntityGoal;
 import com.ineffa.wondrouswilds.entities.ai.FireflyWanderFlyingGoal;
 import com.ineffa.wondrouswilds.entities.ai.FireflyWanderLandGoal;
 import com.ineffa.wondrouswilds.registry.WondrousWildsTags;
-import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.PanicGoal;
-import net.minecraft.world.entity.animal.SnowGolem;
-import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.pathfinder.BlockPathTypes;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.*;
+import net.minecraft.entity.ai.goal.EscapeDangerGoal;
+import net.minecraft.entity.ai.goal.SwimGoal;
+import net.minecraft.entity.ai.pathing.PathNodeType;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.PassiveEntity;
+import net.minecraft.entity.passive.SnowGolemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.EntityPassengersSetS2CPacket;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
+import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.world.*;
+import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
 import software.bernie.geckolib3.core.IAnimatable;
 import software.bernie.geckolib3.core.PlayState;
@@ -42,119 +40,123 @@ import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
 import software.bernie.geckolib3.core.manager.AnimationData;
 import software.bernie.geckolib3.core.manager.AnimationFactory;
 
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Objects;
 
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 public class FireflyEntity extends FlyingAndWalkingAnimalEntity implements IAnimatable {
 
-    private static final EntityDataAccessor<Integer> LAND_ON_ENTITY_COOLDOWN = SynchedEntityData.defineId(FireflyEntity.class, EntityDataSerializers.INT);
+    private static final TrackedData<Integer> LAND_ON_ENTITY_COOLDOWN = DataTracker.registerData(FireflyEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
-    public FireflyEntity(EntityType<? extends FireflyEntity> entityType, Level world) {
+    public FireflyEntity(EntityType<? extends FireflyEntity> entityType, World world) {
         super(entityType, world);
 
-        this.setPathfindingMalus(BlockPathTypes.DANGER_FIRE, -1.0f);
-        this.setPathfindingMalus(BlockPathTypes.WATER, -1.0f);
-        this.setPathfindingMalus(BlockPathTypes.WATER_BORDER, 16.0f);
-        this.setPathfindingMalus(BlockPathTypes.COCOA, -1.0f);
-        this.setPathfindingMalus(BlockPathTypes.FENCE, -1.0f);
+        this.setPathfindingPenalty(PathNodeType.DANGER_FIRE, -1.0f);
+        this.setPathfindingPenalty(PathNodeType.WATER, -1.0f);
+        this.setPathfindingPenalty(PathNodeType.WATER_BORDER, 16.0f);
+        this.setPathfindingPenalty(PathNodeType.COCOA, -1.0f);
+        this.setPathfindingPenalty(PathNodeType.FENCE, -1.0f);
 
-        //this.ignoreCameraFrustum = true;
+        this.ignoreCameraFrustum = true;
     }
 
-    public static boolean canFireflySpawn(EntityType<FireflyEntity> entityType, LevelAccessor world, MobSpawnType spawnReason, BlockPos spawnAttemptPos, RandomSource random) {
-        if (!world.getBlockState(spawnAttemptPos.below()).is(WondrousWildsTags.Blocks.FIREFLIES_SPAWNABLE_ON) || !FireflyEntity.checkAnimalSpawnRules(entityType, world, spawnReason, spawnAttemptPos, random)) return false;
+    public static boolean canFireflySpawn(EntityType<FireflyEntity> entityType, ServerWorldAccess world, SpawnReason spawnReason, BlockPos spawnAttemptPos, Random random) {
+        if (!world.getBlockState(spawnAttemptPos.down()).isIn(WondrousWildsTags.BlockTags.FIREFLIES_SPAWNABLE_ON) || !FireflyEntity.canMobSpawn(entityType, world, spawnReason, spawnAttemptPos, random)) return false;
 
-        Holder<Biome> biome = world.getBiome(spawnAttemptPos);
-        int skylightLevel = world.getBrightness(LightLayer.SKY, spawnAttemptPos);
+        RegistryEntry<Biome> biome = world.getBiome(spawnAttemptPos);
+        int skylightLevel = world.getLightLevel(LightType.SKY, spawnAttemptPos);
 
         // Spawn immediately if the spawn position is underground and the biome allows underground spawning
-        if (skylightLevel <= 0 && biome.is(WondrousWildsTags.Biomes.SPAWNS_FIREFLIES_UNDERGROUND)) return true;
+        if (skylightLevel <= 0 && biome.isIn(WondrousWildsTags.BiomeTags.SPAWNS_FIREFLIES_UNDERGROUND)) return true;
 
-        ServerLevel serverWorld = Objects.requireNonNull(world.getServer()).overworld();
+        ServerWorld serverWorld = world.toServerWorld();
 
         // Otherwise, cancel if it is not raining and the biome requires it
-        if (biome.is(WondrousWildsTags.Biomes.SPAWNS_FIREFLIES_ON_SURFACE_ONLY_IN_RAIN)) {
+        if (biome.isIn(WondrousWildsTags.BiomeTags.SPAWNS_FIREFLIES_ON_SURFACE_ONLY_IN_RAIN)) {
             if (!serverWorld.isRaining()) return false;
         }
         // Otherwise, cancel if the biome does not allow surface spawning at all
-        else if (!biome.is(WondrousWildsTags.Biomes.SPAWNS_FIREFLIES_ON_SURFACE)) return false;
+        else if (!biome.isIn(WondrousWildsTags.BiomeTags.SPAWNS_FIREFLIES_ON_SURFACE)) return false;
 
         // Finally, spawn if basic surface spawning conditions are met
-        return serverWorld.isNight() && skylightLevel >= 6 && world.getBrightness(LightLayer.BLOCK, spawnAttemptPos) <= 0;
+        return serverWorld.isNight() && skylightLevel >= 6 && world.getLightLevel(LightType.BLOCK, spawnAttemptPos) <= 0;
     }
 
     // Removes the light level restriction set by AnimalEntity
     @Override
-    public float getWalkTargetValue(BlockPos pos, LevelReader world) {
+    public float getPathfindingFavor(BlockPos pos, WorldView world) {
         return 0.0F;
     }
 
-    public static AttributeSupplier.Builder createFireflyAttributes() {
-        return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 6.0D)
-                .add(Attributes.FLYING_SPEED, 0.3D)
-                .add(Attributes.MOVEMENT_SPEED, 0.1D);
+    public static DefaultAttributeContainer.Builder createFireflyAttributes() {
+        return AnimalEntity.createMobAttributes()
+                .add(EntityAttributes.GENERIC_MAX_HEALTH, 6.0D)
+                .add(EntityAttributes.GENERIC_FLYING_SPEED, 0.3D)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.1D);
     }
 
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
+    protected void initDataTracker() {
+        super.initDataTracker();
 
-        this.entityData.define(LAND_ON_ENTITY_COOLDOWN, 0);
+        this.dataTracker.startTracking(LAND_ON_ENTITY_COOLDOWN, 0);
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag nbt) {
-        super.readAdditionalSaveData(nbt);
+    public void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
 
         this.setLandOnEntityCooldown(nbt.getInt("LandOnEntityCooldown"));
     }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag nbt) {
-        super.addAdditionalSaveData(nbt);
+    public void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
 
         nbt.putInt("LandOnEntityCooldown", this.getLandOnEntityCooldown());
     }
 
+    @Override
+    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
+        if (this.getRandom().nextBoolean() && !this.isFlying()) this.setFlying(true);
+
+        return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
+    }
+
     public int getLandOnEntityCooldown() {
-        return this.entityData.get(LAND_ON_ENTITY_COOLDOWN);
+        return this.dataTracker.get(LAND_ON_ENTITY_COOLDOWN);
     }
 
     public void setLandOnEntityCooldown(int ticks) {
-        this.entityData.set(LAND_ON_ENTITY_COOLDOWN, ticks);
+        this.dataTracker.set(LAND_ON_ENTITY_COOLDOWN, ticks);
     }
 
     @Override
-    protected void registerGoals() {
-        this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new PanicGoal(this, 2.0D));
-        this.goalSelector.addGoal(2, new FireflyHideGoal(this, 1.0D, 16, 16));
-        this.goalSelector.addGoal(3, new FireflyLandOnEntityGoal(this, LivingEntity.class));
-        this.goalSelector.addGoal(4, new FireflyWanderLandGoal(this, 1.0D));
-        this.goalSelector.addGoal(4, new FireflyWanderFlyingGoal(this));
+    protected void initGoals() {
+        this.goalSelector.add(0, new SwimGoal(this));
+        this.goalSelector.add(1, new EscapeDangerGoal(this, 2.0D));
+        this.goalSelector.add(2, new FireflyHideGoal(this, 1.0D, 16, 16));
+        this.goalSelector.add(3, new FireflyLandOnEntityGoal(this, LivingEntity.class));
+        this.goalSelector.add(4, new FireflyWanderLandGoal(this, 1.0D));
+        this.goalSelector.add(4, new FireflyWanderFlyingGoal(this));
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        if (this.isPassenger()) {
-            if (!this.getLevel().isClientSide && (this.getRandom().nextInt(600) == 0 || this.shouldHide())) this.stopRiding();
+        if (this.hasVehicle()) {
+            if (!this.getWorld().isClient() && (this.getRandom().nextInt(600) == 0 || this.shouldHide())) this.stopRiding();
 
-            if (this.getVehicle() != null) this.setYHeadRot(this.getVehicle().getYHeadRot());
+            if (this.getVehicle() != null) this.setHeadYaw(this.getVehicle().getHeadYaw());
         }
         else if (this.getLandOnEntityCooldown() > 0) this.setLandOnEntityCooldown(this.getLandOnEntityCooldown() - 1);
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        if (super.hurt(source, amount)) {
-            if (this.isPassenger()) this.stopRiding();
+    public boolean damage(DamageSource source, float amount) {
+        if (super.damage(source, amount)) {
+            if (this.hasVehicle()) this.stopRiding();
 
-            else if (!this.isAiFlying()) this.setFlying(true);
+            else if (!this.isFlying()) this.setFlying(true);
 
             return true;
         }
@@ -162,30 +164,30 @@ public class FireflyEntity extends FlyingAndWalkingAnimalEntity implements IAnim
     }
 
     @Override
-    protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {
+    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
         return dimensions.height * 0.7F;
     }
 
     @Override
-    public MobType getMobType() {
-        return MobType.ARTHROPOD;
+    public EntityGroup getGroup() {
+        return EntityGroup.ARTHROPOD;
     }
 
     @Override
-    public boolean removeWhenFarAway(double distanceSquared) {
+    public boolean canImmediatelyDespawn(double distanceSquared) {
         return true;
     }
 
     public boolean canWander() {
-        return !this.isPassenger();
+        return !this.hasVehicle();
     }
 
     public boolean canSearchForEntityToLandOn() {
-        return this.getLandOnEntityCooldown() <= 0 && !this.isPassenger() && !this.shouldHide();
+        return this.getLandOnEntityCooldown() <= 0 && !this.hasVehicle() && !this.shouldHide();
     }
 
     public boolean shouldHide() {
-        return this.getLevel().isDay() && this.getLevel().getBrightness(LightLayer.SKY, this.getOnPos()) >= 6;
+        return this.getWorld().isDay() && this.getWorld().getLightLevel(LightType.SKY, this.getBlockPos()) >= 6;
     }
 
     @Override
@@ -196,19 +198,19 @@ public class FireflyEntity extends FlyingAndWalkingAnimalEntity implements IAnim
 
         super.stopRiding();
 
-        if (!this.getLevel().isClientSide) {
-            if (vehicle instanceof Player) {
-                ServerLevel serverWorld = (ServerLevel) this.getLevel();
-                for (ServerPlayer player : serverWorld.players()) player.connection.send(new ClientboundSetPassengersPacket(vehicle));
+        if (!this.getWorld().isClient()) {
+            if (vehicle instanceof PlayerEntity) {
+                ServerWorld serverWorld = (ServerWorld) this.getWorld();
+                for (ServerPlayerEntity player : serverWorld.getPlayers()) player.networkHandler.sendPacket(new EntityPassengersSetS2CPacket(vehicle));
             }
         }
     }
 
     @Override
-    public double getMyRidingOffset() {
+    public double getHeightOffset() {
         double offset = 0.0D;
 
-        if (this.isPassenger()) {
+        if (this.hasVehicle()) {
             EntityType<?> vehicleType = Objects.requireNonNull(this.getVehicle()).getType();
 
             if (vehicleType == EntityType.ZOMBIE_VILLAGER || vehicleType == EntityType.ENDERMAN) offset = 0.6D;
@@ -223,35 +225,36 @@ public class FireflyEntity extends FlyingAndWalkingAnimalEntity implements IAnim
             else if (vehicleType == EntityType.SNOW_GOLEM) {
                 offset = 0.45D;
 
-                if (!((SnowGolem) this.getVehicle()).hasPumpkin()) offset -= 0.175D;
+                if (!((SnowGolemEntity) this.getVehicle()).hasPumpkin()) offset -= 0.175D;
             }
 
             else if (vehicleType == EntityType.ARMOR_STAND) {
                 offset = 0.4D;
 
-                if (!((ArmorStand) this.getVehicle()).getItemBySlot(EquipmentSlot.HEAD).isEmpty()) offset += 0.1D;
+                if (!((ArmorStandEntity) this.getVehicle()).getEquippedStack(EquipmentSlot.HEAD).isEmpty()) offset += 0.1D;
             }
 
-            if (this.getVehicle().isCrouching()) offset -= 0.15D;
+            if (this.getVehicle().isSneaking()) offset -= 0.15D;
         }
 
         return offset;
     }
 
     @Override
-    public boolean causeFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
+    public boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {
         return false;
     }
 
     @Nullable
     @Override
-    public AgeableMob getBreedOffspring(ServerLevel world, AgeableMob entity) {
+    public PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
         return null;
     }
 
     @Override
     protected void playStepSound(BlockPos pos, BlockState state) {}
 
+    @Nullable
     @Override
     protected SoundEvent getAmbientSound() {
         return null;
