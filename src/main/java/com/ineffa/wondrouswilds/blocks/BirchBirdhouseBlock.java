@@ -1,34 +1,33 @@
 package com.ineffa.wondrouswilds.blocks;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.entity.ai.pathing.NavigationType;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.BlockView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 @SuppressWarnings("deprecation")
 public class BirchBirdhouseBlock extends BirdhouseBlock {
 
-    private static final VoxelShape ROOF_SHAPE = Block.createCuboidShape(0.0D, 14.0D, 0.0D, 16.0D, 16.0D, 16.0D);
-    private static final VoxelShape NORTH_BOX_SHAPE = Block.createCuboidShape(0.0D, 0.0D, 2.0D, 16.0D, 14.0D, 16.0D);
-    private static final VoxelShape SOUTH_BOX_SHAPE = Block.createCuboidShape(0.0D, 0.0D, 0.0D, 16.0D, 14.0D, 14.0D);
-    private static final VoxelShape EAST_BOX_SHAPE = Block.createCuboidShape(0.0D, 0.0D, 0.0D, 14.0D, 14.0D, 16.0D);
-    private static final VoxelShape WEST_BOX_SHAPE = Block.createCuboidShape(2.0D, 0.0D, 0.0D, 16.0D, 14.0D, 16.0D);
-    private static final VoxelShape NORTH_SHAPE = VoxelShapes.union(ROOF_SHAPE, NORTH_BOX_SHAPE);
-    private static final VoxelShape SOUTH_SHAPE = VoxelShapes.union(ROOF_SHAPE, SOUTH_BOX_SHAPE);
-    private static final VoxelShape EAST_SHAPE = VoxelShapes.union(ROOF_SHAPE, EAST_BOX_SHAPE);
-    private static final VoxelShape WEST_SHAPE = VoxelShapes.union(ROOF_SHAPE, WEST_BOX_SHAPE);
+    private static final VoxelShape ROOF_SHAPE = Shapes.box(0.0D, 14.0D, 0.0D, 16.0D, 16.0D, 16.0D);
+    private static final VoxelShape NORTH_BOX_SHAPE = Shapes.box(0.0D, 0.0D, 2.0D, 16.0D, 14.0D, 16.0D);
+    private static final VoxelShape SOUTH_BOX_SHAPE = Shapes.box(0.0D, 0.0D, 0.0D, 16.0D, 14.0D, 14.0D);
+    private static final VoxelShape EAST_BOX_SHAPE = Shapes.box(0.0D, 0.0D, 0.0D, 14.0D, 14.0D, 16.0D);
+    private static final VoxelShape WEST_BOX_SHAPE = Shapes.box(2.0D, 0.0D, 0.0D, 16.0D, 14.0D, 16.0D);
+    private static final VoxelShape NORTH_SHAPE = Shapes.or(ROOF_SHAPE, NORTH_BOX_SHAPE);
+    private static final VoxelShape SOUTH_SHAPE = Shapes.or(ROOF_SHAPE, SOUTH_BOX_SHAPE);
+    private static final VoxelShape EAST_SHAPE = Shapes.or(ROOF_SHAPE, EAST_BOX_SHAPE);
+    private static final VoxelShape WEST_SHAPE = Shapes.or(ROOF_SHAPE, WEST_BOX_SHAPE);
 
-    public BirchBirdhouseBlock(Settings settings) {
-        super(settings);
+    public BirchBirdhouseBlock(Properties properties) {
+        super(properties);
     }
 
     @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return switch (state.get(FACING)) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+        return switch (state.getValue(FACING)) {
             default -> NORTH_SHAPE;
             case SOUTH -> SOUTH_SHAPE;
             case EAST -> EAST_SHAPE;
@@ -37,7 +36,7 @@ public class BirchBirdhouseBlock extends BirdhouseBlock {
     }
 
     @Override
-    public boolean canPathfindThrough(BlockState state, BlockView world, BlockPos pos, NavigationType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter world, BlockPos pos, PathComputationType type) {
         return false;
     }
 }

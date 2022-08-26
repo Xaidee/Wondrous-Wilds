@@ -1,15 +1,16 @@
 package com.ineffa.wondrouswilds.entities.ai;
 
 import com.ineffa.wondrouswilds.blocks.entity.InhabitableNestBlockEntity;
+import com.ineffa.wondrouswilds.blocks.entity.TreeHollowBlockEntity;
+import com.ineffa.wondrouswilds.entities.BlockNester;
 import com.ineffa.wondrouswilds.entities.FlyingAndWalkingAnimalEntity;
-import com.ineffa.wondrouswilds.entities.TreeHollowNester;
-import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.WorldView;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.MoveToBlockGoal;
+import net.minecraft.world.level.LevelReader;
 
-public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
+public class FindOrReturnToBlockNestGoal extends MoveToBlockGoal {
 
     private final BlockNester nester;
     private final Mob nesterEntity;
@@ -19,8 +20,8 @@ public class FindOrReturnToTreeHollowGoal extends MoveToBlockGoal {
 
     private boolean lookingForNest = false;
 
-    public FindOrReturnToTreeHollowGoal(TreeHollowNester nester, double speed, int range, int maxYDifference) {
-        super((PathAwareEntity) nester, speed, range, maxYDifference);
+    public FindOrReturnToBlockNestGoal(BlockNester nester, double speed, int range, int maxYDifference) {
+        super((PathfinderMob) nester, speed, range, maxYDifference);
 
         this.nester = nester;
         this.nesterEntity = (Mob) nester;

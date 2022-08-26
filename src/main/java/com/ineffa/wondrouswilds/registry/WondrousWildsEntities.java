@@ -46,7 +46,7 @@ public class WondrousWildsEntities {
     }
 
     public static final Map<EntityType<?>, Integer> DEFAULT_NESTER_CAPACITY_WEIGHTS = new ImmutableMap.Builder<EntityType<?>, Integer>()
-            .put(WOODPECKER.get(), 55)
+            //.put(WOODPECKER.get(), 55)
             .build();
 
     @SubscribeEvent

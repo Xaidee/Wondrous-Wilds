@@ -8,11 +8,14 @@ import net.minecraft.stats.ServerStatsCounter;
 import net.minecraft.stats.Stat;
 import net.minecraft.stats.StatType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.storage.LevelResource;
+
+import java.io.File;
 
 public class FakeServerStatHandler extends ServerStatsCounter {
 
     public FakeServerStatHandler(MinecraftServer server) {
-        super(server, Minecraft.getInstance().gameDirectory);
+        super(server, server.getWorldPath(LevelResource.PLAYER_ADVANCEMENTS_DIR).toFile());
     }
 
     @Override

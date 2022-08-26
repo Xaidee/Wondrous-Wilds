@@ -24,19 +24,19 @@ import java.util.Objects;
 @SuppressWarnings("deprecation")
 public class HollowLogBlock extends RotatedPillarBlock implements SimpleWaterloggedBlock {
 
-    private static final VoxelShape VERTICAL_NORTH_WALL_SHAPE = Shapes.box(0.0D, 0.0D, 0.0D, 16.0D, 16.0D, 3.0D);
-    private static final VoxelShape VERTICAL_SOUTH_WALL_SHAPE = Shapes.box(0.0D, 0.0D, 13.0D, 16.0D, 16.0D, 16.0D);
-    private static final VoxelShape VERTICAL_EAST_WALL_SHAPE = Shapes.box(13.0D, 0.0D, 3.0D, 16.0D, 16.0D, 13.0D);
-    private static final VoxelShape VERTICAL_WEST_WALL_SHAPE = Shapes.box(0.0D, 0.0D, 3.0D, 3.0D, 16.0D, 13.0D);
+    private static final VoxelShape VERTICAL_NORTH_WALL_SHAPE = box(0.0D, 0.0D, 0.0D, 16.0D, 16.0D, 3.0D);
+    private static final VoxelShape VERTICAL_SOUTH_WALL_SHAPE = box(0.0D, 0.0D, 13.0D, 16.0D, 16.0D, 16.0D);
+    private static final VoxelShape VERTICAL_EAST_WALL_SHAPE = box(13.0D, 0.0D, 3.0D, 16.0D, 16.0D, 13.0D);
+    private static final VoxelShape VERTICAL_WEST_WALL_SHAPE = box(0.0D, 0.0D, 3.0D, 3.0D, 16.0D, 13.0D);
 
-    private static final VoxelShape HORIZONTAL_TOP_SHAPE = Shapes.box(0.0D, 13.0D, 0.0D, 16.0D, 16.0D, 16.0D);
-    private static final VoxelShape HORIZONTAL_BOTTOM_SHAPE = Shapes.box(0.0D, 0.0D, 0.0D, 16.0D, 3.0D, 16.0D);
+    private static final VoxelShape HORIZONTAL_TOP_SHAPE = box(0.0D, 13.0D, 0.0D, 16.0D, 16.0D, 16.0D);
+    private static final VoxelShape HORIZONTAL_BOTTOM_SHAPE = box(0.0D, 0.0D, 0.0D, 16.0D, 3.0D, 16.0D);
 
-    private static final VoxelShape X_AXIS_NORTH_WALL_SHAPE = Shapes.box(0.0D, 3.0D, 0.0D, 16.0D, 13.0D, 3.0D);
-    private static final VoxelShape X_AXIS_SOUTH_WALL_SHAPE = Shapes.box(0.0D, 3.0D, 13.0D, 16.0D, 13.0D, 16.0D);
+    private static final VoxelShape X_AXIS_NORTH_WALL_SHAPE = box(0.0D, 3.0D, 0.0D, 16.0D, 13.0D, 3.0D);
+    private static final VoxelShape X_AXIS_SOUTH_WALL_SHAPE = box(0.0D, 3.0D, 13.0D, 16.0D, 13.0D, 16.0D);
 
-    private static final VoxelShape Z_AXIS_EAST_WALL_SHAPE = Shapes.box(13.0D, 3.0D, 0.0D, 16.0D, 13.0D, 16.0D);
-    private static final VoxelShape Z_AXIS_WEST_WALL_SHAPE = Shapes.box(0.0D, 3.0D, 0.0D, 3.0D, 13.0D, 16.0D);
+    private static final VoxelShape Z_AXIS_EAST_WALL_SHAPE = box(13.0D, 3.0D, 0.0D, 16.0D, 13.0D, 16.0D);
+    private static final VoxelShape Z_AXIS_WEST_WALL_SHAPE = box(0.0D, 3.0D, 0.0D, 3.0D, 13.0D, 16.0D);
 
     private static final VoxelShape Y_AXIS_SHAPE = Shapes.or(VERTICAL_NORTH_WALL_SHAPE, VERTICAL_SOUTH_WALL_SHAPE, VERTICAL_EAST_WALL_SHAPE, VERTICAL_WEST_WALL_SHAPE);
     private static final VoxelShape X_AXIS_SHAPE = Shapes.or(HORIZONTAL_TOP_SHAPE, HORIZONTAL_BOTTOM_SHAPE, X_AXIS_NORTH_WALL_SHAPE, X_AXIS_SOUTH_WALL_SHAPE);

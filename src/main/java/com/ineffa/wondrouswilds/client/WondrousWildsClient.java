@@ -1,22 +1,21 @@
 package com.ineffa.wondrouswilds.client;
 
-import com.ineffa.wondrouswilds.client.rendering.WondrousWildsColorProviders;
+import com.ineffa.wondrouswilds.WondrousWilds;
 import com.ineffa.wondrouswilds.client.rendering.entity.FireflyRenderer;
 import com.ineffa.wondrouswilds.client.rendering.entity.WoodpeckerRenderer;
-import com.ineffa.wondrouswilds.networking.WondrousWildsNetwork;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import com.ineffa.wondrouswilds.registry.WondrousWildsEntities;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.function.Supplier;
 
-@OnlyIn(Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = WondrousWilds.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class WondrousWildsClient {
 
     @SubscribeEvent
@@ -51,8 +50,5 @@ public class WondrousWildsClient {
         render(WondrousWildsBlocks.YELLOW_BIRCH_LEAVES, mipped);
         render(WondrousWildsBlocks.ORANGE_BIRCH_LEAVES, mipped);
         render(WondrousWildsBlocks.RED_BIRCH_LEAVES, mipped);
-    }
-
-    public void onInitializeClient() {
     }
 }

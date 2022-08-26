@@ -42,7 +42,12 @@ import org.slf4j.LoggerFactory;
 import software.bernie.example.GeckoLibMod;
 import software.bernie.geckolib3.GeckoLib;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Mod(WondrousWilds.MOD_ID)
 public class WondrousWilds {
@@ -59,8 +64,6 @@ public class WondrousWilds {
 	public WondrousWilds() {
 		LOGGER.info("Wondrous Wilds initializing!");
 
-		GeckoLibMod.DISABLE_IN_DEV = true;
-
 		IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
 
 		bus.addListener(this::setup);
@@ -72,12 +75,12 @@ public class WondrousWilds {
 				WondrousWildsBlocks.BLOCK_ENTITIES,
 				WondrousWildsItems.ITEMS,
 				WondrousWildsEntities.ENTITIES,
-				WondrousWildsFeatures.FEATURES,
-				WondrousWildsFeatures.CONFIGURED_FEATURES,
-				WondrousWildsFeatures.PLACED_FEATURES,
-				WondrousWildsFeatures.Trees.TrunkPlacers.TRUNK_PLACERS,
-				WondrousWildsFeatures.Trees.FoliagePlacers.FOLIAGE_PLACERS,
-				WondrousWildsFeatures.Trees.Decorators.TREE_DECORATORS,
+				//WondrousWildsFeatures.FEATURES,
+				//WondrousWildsFeatures.CONFIGURED_FEATURES,
+				//WondrousWildsFeatures.PLACED_FEATURES,
+				//WondrousWildsFeatures.Trees.TrunkPlacers.TRUNK_PLACERS,
+				//WondrousWildsFeatures.Trees.FoliagePlacers.FOLIAGE_PLACERS,
+				//WondrousWildsFeatures.Trees.Decorators.TREE_DECORATORS,
 				WondrousWildsSounds.SOUNDS
 		};
 
@@ -85,12 +88,14 @@ public class WondrousWilds {
 			register.register(bus);
 		}
 
-		WondrousWildsBlocks.initialize();
+		GeckoLibMod.DISABLE_IN_DEV = true;
+		GeckoLib.initialize();
 	}
 
 	public void setup(FMLCommonSetupEvent event) {
 		event.enqueueWork(() -> {
 			WondrousWildsEntities.spawnPlacements();
+			WondrousWildsBlocks.initialize();
 
 			ComposterBlock.add(0.3F, WondrousWildsBlocks.PURPLE_VIOLET.get());
 			ComposterBlock.add(0.3F, WondrousWildsBlocks.PINK_VIOLET.get());
@@ -141,12 +146,9 @@ public class WondrousWilds {
 	}
 
 	public void clientSetup(FMLClientSetupEvent event) {
-		GeckoLib.initialize();
 		WondrousWildsClient.registerBlockRenderers();
-		WondrousWildsNetwork.registerS2CPackets();
 		event.enqueueWork(() -> {
 
-		WondrousWildsScreenHandlers.initialize();
 		});
 	}
 
@@ -158,7 +160,7 @@ public class WondrousWilds {
 
 		}
 		if(event.includeServer()) {
-			generator.addProvider(true, BiomeModifierProvider.create(generator, helper));
+			//generator.addProvider(true, BiomeModifierProvider.create(generator, helper));
 		}
 	}
 

@@ -32,11 +32,12 @@ public class WoodpeckerModel extends AnimatedGeoModel<WoodpeckerEntity> {
         super.setMolangQueries(animatable, currentTick);
 
         MolangParser parser = GeckoLibCache.getInstance().parser;
+        Minecraft minecraftInstance = Minecraft.getInstance();
 
         WoodpeckerEntity entity = (WoodpeckerEntity) animatable;
         boolean flying = entity.isFlying();
 
-        float delta = Minecraft.getInstance().getDeltaFrameTime();
+        float delta = minecraftInstance.getDeltaFrameTime();
 
         float headPitch = Mth.lerp(delta, entity.yRotO, entity.getYRot());
         float f = Mth.rotLerp(delta, entity.yBodyRotO, entity.yBodyRot);

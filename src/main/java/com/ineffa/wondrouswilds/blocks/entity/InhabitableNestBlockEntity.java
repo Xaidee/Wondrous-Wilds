@@ -4,27 +4,22 @@ import com.ineffa.wondrouswilds.blocks.InhabitableNestBlock;
 import com.ineffa.wondrouswilds.entities.FlyingAndWalkingAnimalEntity;
 import com.ineffa.wondrouswilds.entities.BlockNester;
 import com.ineffa.wondrouswilds.entities.WoodpeckerEntity;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.ServerWorldAccess;
-import net.minecraft.world.World;
-import net.minecraft.world.event.GameEvent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -46,15 +41,15 @@ public interface InhabitableNestBlockEntity {
 
     List<Inhabitant> getInhabitants();
 
-    static void removeIrrelevantNbt(NbtCompound nbtCompound) {
+    static void removeIrrelevantNbt(CompoundTag nbtCompound) {
         for (String key : IRRELEVANT_INHABITANT_NBT_KEYS) nbtCompound.remove(key);
     }
 
-    default NbtList getInhabitantsNbt() {
-        NbtList nbtList = new NbtList();
+    default ListTag getInhabitantsNbt() {
+        ListTag nbtList = new ListTag();
         for (Inhabitant inhabitant : this.getInhabitants()) {
-            NbtCompound copy = inhabitant.entityData.copy();
-            NbtCompound nbt = new NbtCompound();
+            CompoundTag copy = inhabitant.entityData.copy();
+            CompoundTag nbt = new CompoundTag();
 
             nbt.put(ENTITY_DATA_KEY, copy);
             nbt.putInt(CAPACITY_WEIGHT_KEY, inhabitant.capacityWeight);
@@ -94,11 +89,11 @@ public interface InhabitableNestBlockEntity {
         return this.getUsedCapacity() >= this.getMaxCapacity();
     }
 
-    default boolean entityMatchesInhabitants(MobEntity entity) {
-        String nesterId = EntityType.getId(entity.getType()).toString();
+    default boolean entityMatchesInhabitants(Mob entity) {
+        String nesterId = EntityType.getKey(entity.getType()).toString();
 
         for (Inhabitant inhabitant : this.getInhabitants()) {
-            String inhabitantId = inhabitant.entityData.getString(Entity.ID_KEY);
+            String inhabitantId = inhabitant.entityData.getString(Entity.ID_TAG);
 
             if (!Objects.equals(inhabitantId, nesterId)) return false;
         }
@@ -111,26 +106,26 @@ public interface InhabitableNestBlockEntity {
     }
 
     default boolean tryAddingInhabitant(BlockNester nester) {
-        if (!(nester instanceof MobEntity nesterEntity)) return false;
+        if (!(nester instanceof Mob nesterEntity)) return false;
 
         if ((this.isCapacityFilled() || !this.canFitNester(nester)) || !this.entityMatchesInhabitants(nesterEntity)) {
-            if (nesterEntity instanceof AnimalEntity animal && animal.isBaby() && this.entityMatchesInhabitants(animal)) return false;
+            if (nesterEntity instanceof Animal animal && animal.isBaby() && this.entityMatchesInhabitants(animal)) return false;
 
             this.alertInhabitants(nesterEntity, InhabitantReleaseState.ALERT);
             return false;
         }
 
         nesterEntity.stopRiding();
-        nesterEntity.removeAllPassengers();
+        nesterEntity.ejectPassengers();
 
         this.addInhabitant(nester);
 
-        World world = this.getNestWorld();
+        Level world = this.getNestWorld();
         if (world != null) {
             BlockPos pos = this.getNestPos();
 
-            world.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BLOCK_BEEHIVE_ENTER, SoundCategory.BLOCKS, 1.0F, 1.0F);
-            world.emitGameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Emitter.of(nesterEntity, this.getNestCachedState()));
+            world.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.BEEHIVE_ENTER, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(nesterEntity, this.getNestCachedState()));
         }
 
         nesterEntity.discard();
@@ -141,10 +136,10 @@ public interface InhabitableNestBlockEntity {
     }
 
     default void addInhabitant(BlockNester inhabitant) {
-        if (!(inhabitant instanceof MobEntity entity)) return;
+        if (!(inhabitant instanceof Mob entity)) return;
 
-        NbtCompound entityData = new NbtCompound();
-        entity.saveNbt(entityData);
+        CompoundTag entityData = new CompoundTag();
+        entity.save(entityData);
 
         this.getInhabitants().add(new Inhabitant(false, entityData, inhabitant.getNestCapacityWeight(), 0, inhabitant.getMinTicksInNest()));
     }
@@ -152,9 +147,9 @@ public interface InhabitableNestBlockEntity {
     default void addFreshInhabitant(EntityType<?> entityType) {
         if (!DEFAULT_NESTER_CAPACITY_WEIGHTS.containsKey(entityType)) return;
 
-        NbtCompound entityData = new NbtCompound();
-        entityData.putString("id", Registry.ENTITY_TYPE.getId(entityType).toString());
-        entityData.put("NestPos", NbtHelper.fromBlockPos(this.getNestPos()));
+        CompoundTag entityData = new CompoundTag();
+        entityData.putString("id", ForgeRegistries.ENTITY_TYPES.getKey(entityType).toString());
+        entityData.put("NestPos", NbtUtils.writeBlockPos(this.getNestPos()));
 
         this.getInhabitants().add(new Inhabitant(true, entityData, DEFAULT_NESTER_CAPACITY_WEIGHTS.get(entityType), 0, 600));
     }
@@ -168,9 +163,9 @@ public interface InhabitableNestBlockEntity {
 
         if (attacker != null) {
             for (BlockNester inhabitant : inhabitants) {
-                if (!inhabitant.defendsNest() || !(inhabitant instanceof MobEntity inhabitantEntity) || (inhabitant instanceof WoodpeckerEntity woodpecker && woodpecker.isTame())) continue;
+                if (!inhabitant.defendsNest() || !(inhabitant instanceof Mob inhabitantEntity) || (inhabitant instanceof WoodpeckerEntity woodpecker && woodpecker.isTame())) continue;
 
-                if (attacker.getPos().squaredDistanceTo(inhabitantEntity.getPos()) > inhabitantEntity.getAttributeValue(EntityAttributes.GENERIC_FOLLOW_RANGE)) continue;
+                if (attacker.position().distanceToSqr(inhabitantEntity.position()) > inhabitantEntity.getAttributeValue(Attributes.FOLLOW_RANGE)) continue;
 
                 inhabitantEntity.setTarget(attacker);
 
@@ -189,65 +184,65 @@ public interface InhabitableNestBlockEntity {
         return releasedInhabitants;
     }
 
-    static boolean tryReleasingInhabitant(World world, BlockPos nestPos, BlockState state, InhabitantReleaseState releaseState, Inhabitant inhabitant, @Nullable List<BlockNester> inhabitantGetter) {
+    static boolean tryReleasingInhabitant(Level world, BlockPos nestPos, BlockState state, InhabitantReleaseState releaseState, Inhabitant inhabitant, @Nullable List<BlockNester> inhabitantGetter) {
         if ((world.isNight() || world.isRaining()) && releaseState == InhabitantReleaseState.RELEASE) return false;
 
-        NbtCompound nbtCompound = inhabitant.entityData.copy();
+        CompoundTag nbtCompound = inhabitant.entityData.copy();
         removeIrrelevantNbt(nbtCompound);
-        nbtCompound.put("NestPos", NbtHelper.fromBlockPos(nestPos));
+        nbtCompound.put("NestPos", NbtUtils.writeBlockPos(nestPos));
 
-        Direction frontDirection = state.get(InhabitableNestBlock.FACING);
-        BlockPos frontPos = nestPos.offset(frontDirection);
+        Direction frontDirection = state.getValue(InhabitableNestBlock.FACING);
+        BlockPos frontPos = nestPos.relative(frontDirection);
 
         boolean hasSpaceToRelease = world.getBlockState(frontPos).getCollisionShape(world, frontPos).isEmpty();
 
         if (!hasSpaceToRelease && releaseState != InhabitantReleaseState.EMERGENCY) return false;
 
-        MobEntity inhabitantEntity = (MobEntity) EntityType.loadEntityWithPassengers(nbtCompound, world, e -> e);
+        Mob inhabitantEntity = (Mob) EntityType.loadEntityRecursive(nbtCompound, world, e -> e);
         if (inhabitantEntity != null) {
-            double d0 = !hasSpaceToRelease ? 0.0D : 0.55D + (double) (inhabitantEntity.getWidth() / 2.0F);
-            double d1 = (double) nestPos.getX() + 0.5D + d0 * (double) frontDirection.getOffsetX();
-            double d2 = (double) nestPos.getY() + 0.5D - (double) (inhabitantEntity.getHeight() / 2.0F);
-            double d3 = (double) nestPos.getZ() + 0.5D + d0 * (double) frontDirection.getOffsetZ();
-            inhabitantEntity.refreshPositionAndAngles(d1, d2, d3, inhabitantEntity.getYaw(), inhabitantEntity.getPitch());
+            double d0 = !hasSpaceToRelease ? 0.0D : 0.55D + (double) (inhabitantEntity.getBbWidth() / 2.0F);
+            double d1 = (double) nestPos.getX() + 0.5D + d0 * (double) frontDirection.getStepX();
+            double d2 = (double) nestPos.getY() + 0.5D - (double) (inhabitantEntity.getBbHeight() / 2.0F);
+            double d3 = (double) nestPos.getZ() + 0.5D + d0 * (double) frontDirection.getStepZ();
+            inhabitantEntity.absMoveTo(d1, d2, d3, inhabitantEntity.getXRot(), inhabitantEntity.getYRot());
 
-            if (inhabitantEntity instanceof AnimalEntity) ageInhabitant(inhabitant.ticksInNest, (AnimalEntity) inhabitantEntity);
+            if (inhabitantEntity instanceof Animal) ageInhabitant(inhabitant.ticksInNest, (Animal) inhabitantEntity);
 
             if (inhabitant.isFresh) {
-                if (world instanceof ServerWorldAccess serverWorldAccess)
-                    inhabitantEntity.initialize(serverWorldAccess, serverWorldAccess.getLocalDifficulty(inhabitantEntity.getBlockPos()), SpawnReason.CHUNK_GENERATION, null, nbtCompound);
+                if (world instanceof ServerLevelAccessor serverWorldAccess)
+                    inhabitantEntity.finalizeSpawn(serverWorldAccess, serverWorldAccess.getCurrentDifficultyAt(inhabitantEntity.blockPosition()), MobSpawnType.CHUNK_GENERATION, null, nbtCompound);
 
                 if (inhabitantEntity instanceof FlyingAndWalkingAnimalEntity flyingEntity) flyingEntity.setFlying(true);
             }
 
-            if (inhabitantEntity instanceof WoodpeckerEntity woodpecker && woodpecker.isTame() && woodpecker.getMainHandStack().isEmpty() && world.getBlockEntity(nestPos) instanceof BirdhouseBlockEntity birdhouse && !birdhouse.isEmpty()) {
+            if (inhabitantEntity instanceof WoodpeckerEntity woodpecker && woodpecker.isTame() && woodpecker.getMainHandItem().isEmpty() && world.getBlockEntity(nestPos) instanceof BirdhouseBlockEntity birdhouse && !birdhouse.isCapacityFilled()) {
                 int slotToTakeFrom = 0;
-                ItemStack birdhouseItem = birdhouse.getStack(slotToTakeFrom);
+                ItemStack birdhouseItem = birdhouse.getItem(slotToTakeFrom);
                 if (!birdhouseItem.isEmpty()) {
-                    woodpecker.setStackInHand(Hand.MAIN_HAND, birdhouseItem.copy());
-                    birdhouse.removeStack(slotToTakeFrom);
+                    woodpecker.setItemSlot(EquipmentSlot.MAINHAND, birdhouseItem.copy());
+                    birdhouse.removeItemNoUpdate(slotToTakeFrom);
                 }
             }
 
             if (inhabitantGetter != null) inhabitantGetter.add((BlockNester) inhabitantEntity);
 
-            world.playSound(null, nestPos, SoundEvents.BLOCK_BEEHIVE_EXIT, SoundCategory.BLOCKS, 1.0F, 1.0F);
-            world.emitGameEvent(GameEvent.BLOCK_CHANGE, nestPos, GameEvent.Emitter.of(inhabitantEntity, world.getBlockState(nestPos)));
+            world.playSound(null, nestPos, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);
+            world.gameEvent(GameEvent.BLOCK_CHANGE, nestPos, GameEvent.Context.of(inhabitantEntity, world.getBlockState(nestPos)));
 
-            return world.spawnEntity(inhabitantEntity);
+            return world.addFreshEntity(inhabitantEntity);
         }
         return false;
     }
 
-    static void ageInhabitant(int ticks, AnimalEntity inhabitant) {
-        int i = inhabitant.getBreedingAge();
-        if (i < 0) inhabitant.setBreedingAge(Math.min(0, i + ticks));
-        else if (i > 0) inhabitant.setBreedingAge(Math.max(0, i - ticks));
+    static void ageInhabitant(int ticks, Animal inhabitant) {
+        int i = inhabitant.getAge();
+        if (i < 0) inhabitant.setAge(Math.min(0, i + ticks));
+        else if (i > 0) inhabitant.setAge(Math.max(0, i - ticks));
 
-        inhabitant.setLoveTicks(Math.max(0, inhabitant.getLoveTicks() - ticks));
+        inhabitant.setInLoveTime(Math.max(0, inhabitant.getInLoveTime() - ticks));
     }
 
-    World getNestWorld();
+    Level getNestWorld();
 
     BlockPos getNestPos();
 
@@ -257,12 +252,12 @@ public interface InhabitableNestBlockEntity {
 
     class Inhabitant {
         final boolean isFresh;
-        final NbtCompound entityData;
+        final CompoundTag entityData;
         final int capacityWeight;
         final int minOccupationTicks;
         int ticksInNest;
 
-        protected Inhabitant(boolean isFresh, NbtCompound entityData, int capacityWeight, int ticksInNest, int minOccupationTicks) {
+        protected Inhabitant(boolean isFresh, CompoundTag entityData, int capacityWeight, int ticksInNest, int minOccupationTicks) {
             removeIrrelevantNbt(entityData);
 
             this.isFresh = isFresh;

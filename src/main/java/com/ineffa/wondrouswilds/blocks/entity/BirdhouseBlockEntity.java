@@ -4,38 +4,37 @@ import com.google.common.collect.Lists;
 import com.ineffa.wondrouswilds.WondrousWilds;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import com.ineffa.wondrouswilds.screen.BirdhouseScreenHandler;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.LootableContainerBlockEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventories;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Iterator;
 import java.util.List;
 
-public class BirdhouseBlockEntity extends LootableContainerBlockEntity implements InhabitableNestBlockEntity {
+public class BirdhouseBlockEntity extends RandomizableContainerBlockEntity implements InhabitableNestBlockEntity {
 
     private final List<Inhabitant> inhabitants = Lists.newArrayList();
 
-    private DefaultedList<ItemStack> inventory = DefaultedList.ofSize(this.size(), ItemStack.EMPTY);
+    private NonNullList<ItemStack> inventory = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
 
     public BirdhouseBlockEntity(BlockPos blockPos, BlockState blockState) {
-        super(WondrousWildsBlocks.BlockEntities.BIRDHOUSE, blockPos, blockState);
+        super(WondrousWildsBlocks.BlockEntities.BIRDHOUSE.get(), blockPos, blockState);
     }
 
-    public static void serverTick(World world, BlockPos pos, BlockState state, BirdhouseBlockEntity birdhouse) {
+    public static void serverTick(Level world, BlockPos pos, BlockState state, BirdhouseBlockEntity birdhouse) {
         tickInhabitants(world, pos, state, birdhouse.getInhabitants());
     }
 
-    private static void tickInhabitants(World world, BlockPos pos, BlockState state, List<Inhabitant> inhabitants) {
+    private static void tickInhabitants(Level world, BlockPos pos, BlockState state, List<Inhabitant> inhabitants) {
         boolean released = false;
 
         Iterator<Inhabitant> iterator = inhabitants.iterator();
@@ -50,57 +49,57 @@ public class BirdhouseBlockEntity extends LootableContainerBlockEntity implement
             ++inhabitant.ticksInNest;
         }
 
-        if (released) markDirty(world, pos, state);
+        if (released) setChanged(world, pos, state);
     }
 
     @Override
-    protected void writeNbt(NbtCompound nbt) {
-        super.writeNbt(nbt);
+    protected void saveAdditional(CompoundTag nbt) {
+        super.saveAdditional(nbt);
 
         nbt.put(INHABITANTS_KEY, this.getInhabitantsNbt());
 
-        if (!this.serializeLootTable(nbt)) Inventories.writeNbt(nbt, this.inventory);
+        if (!this.trySaveLootTable(nbt)) ContainerHelper.saveAllItems(nbt, this.inventory);
     }
 
     @Override
-    public void readNbt(NbtCompound nbt) {
-        super.readNbt(nbt);
+    public void load(CompoundTag nbt) {
+        super.load(nbt);
 
         this.getInhabitants().clear();
 
-        NbtList nbtList = nbt.getList(INHABITANTS_KEY, NbtElement.COMPOUND_TYPE);
+        ListTag nbtList = nbt.getList(INHABITANTS_KEY, 10);
         for (int i = 0; i < nbtList.size(); ++i) {
-            NbtCompound nbtCompound = nbtList.getCompound(i);
+            CompoundTag nbtCompound = nbtList.getCompound(i);
 
             Inhabitant inhabitant = new Inhabitant(false, nbtCompound.getCompound(ENTITY_DATA_KEY), nbtCompound.getInt(CAPACITY_WEIGHT_KEY), nbtCompound.getInt(MIN_OCCUPATION_TICKS_KEY), nbtCompound.getInt(TICKS_IN_NEST_KEY));
             this.getInhabitants().add(inhabitant);
         }
 
-        if (!this.deserializeLootTable(nbt)) Inventories.readNbt(nbt, this.inventory);
+        if (!this.tryLoadLootTable(nbt)) ContainerHelper.loadAllItems(nbt, this.inventory);
     }
 
     @Override
-    protected DefaultedList<ItemStack> getInvStackList() {
+    protected NonNullList<ItemStack> getItems() {
         return this.inventory;
     }
 
     @Override
-    protected void setInvStackList(DefaultedList<ItemStack> list) {
+    protected void setItems(NonNullList<ItemStack> list) {
         this.inventory = list;
     }
 
     @Override
-    protected Text getContainerName() {
-        return Text.translatable("container." + WondrousWilds.MOD_ID + ".birdhouse");
+    protected Component getDefaultName() {
+        return Component.translatable("container." + WondrousWilds.MOD_ID + ".birdhouse");
     }
 
     @Override
-    protected ScreenHandler createScreenHandler(int syncId, PlayerInventory playerInventory) {
+    protected AbstractContainerMenu createMenu(int syncId, Inventory playerInventory) {
         return new BirdhouseScreenHandler(syncId, playerInventory, this);
     }
 
     @Override
-    public int size() {
+    public int getContainerSize() {
         return 1;
     }
 
@@ -110,22 +109,22 @@ public class BirdhouseBlockEntity extends LootableContainerBlockEntity implement
     }
 
     @Override
-    public World getNestWorld() {
-        return this.getWorld();
+    public Level getNestWorld() {
+        return this.getLevel();
     }
 
     @Override
     public BlockPos getNestPos() {
-        return this.getPos();
+        return this.getBlockPos();
     }
 
     @Override
     public BlockState getNestCachedState() {
-        return this.getCachedState();
+        return this.getBlockState();
     }
 
     @Override
     public void markNestDirty() {
-        this.markDirty();
+        this.setChanged();
     }
 }

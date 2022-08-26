@@ -52,7 +52,7 @@ public class TreeHollowTreeDecorator extends TreeDecorator {
         world.isStateAtPosition(chosenLog, state -> {
             generator.setBlock(chosenLog, TREE_HOLLOW_MAP.get(state.getBlock()).defaultBlockState().setValue(TreeHollowBlock.FACING, facingDirection));
             world.getBlockEntity(chosenLog, WondrousWildsBlocks.BlockEntities.TREE_HOLLOW.get()).ifPresent(treeHollow -> {
-                treeHollow.addFreshInhabitant(WondrousWildsEntities.WOODPECKER.get()); // TODO: Make configurable for use with other entities
+                //treeHollow.addFreshInhabitant(WondrousWildsEntities.WOODPECKER.get()); // TODO: Make configurable for use with other entities
             });
 
             return true;

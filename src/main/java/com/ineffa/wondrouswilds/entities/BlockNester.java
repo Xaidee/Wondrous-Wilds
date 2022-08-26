@@ -1,5 +1,6 @@
 package com.ineffa.wondrouswilds.entities;
 
+import com.ineffa.wondrouswilds.util.WondrousWildsUtils;
 import net.minecraft.core.BlockPos;
 
 public interface BlockNester {

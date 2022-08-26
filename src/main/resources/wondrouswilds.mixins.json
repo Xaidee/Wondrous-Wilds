@@ -7,7 +7,6 @@
     "BirchSaplingGeneratorMixin",
     "BlocksMixin",
     "BodyControlMixin",
-    "ComposterBlockInvoker",
     "FoliagePlacerTypeInvoker",
     "MobEntityMixin",
     "TreeConfiguredFeaturesInvoker",
@@ -15,7 +14,6 @@
     "TrunkPlacerTypeInvoker"
   ],
   "client": [
-    "ClientPlayNetworkHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

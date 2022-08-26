@@ -2,101 +2,101 @@ package com.ineffa.wondrouswilds.blocks;
 
 import com.ineffa.wondrouswilds.blocks.entity.BirdhouseBlockEntity;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityTicker;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ItemScatterer;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.Container;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("deprecation")
 public abstract class BirdhouseBlock extends InhabitableNestBlock {
 
-    public BirdhouseBlock(Settings settings) {
-        super(settings);
+    public BirdhouseBlock(Properties properties) {
+        super(properties);
     }
 
     @Nullable
     @Override
-    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new BirdhouseBlockEntity(pos, state);
     }
 
     @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        return world.isClient() ? null : checkType(type, WondrousWildsBlocks.BlockEntities.BIRDHOUSE, BirdhouseBlockEntity::serverTick);
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
+        return world.isClientSide ? null : createTickerHelper(type, WondrousWildsBlocks.BlockEntities.BIRDHOUSE.get(), BirdhouseBlockEntity::serverTick);
     }
 
     @Override
-    public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
-        if (itemStack.hasCustomName() && world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse)
-            birdhouse.setCustomName(itemStack.getName());
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
+        if (itemStack.hasCustomHoverName() && world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse)
+            birdhouse.setCustomName(itemStack.getHoverName());
     }
 
     @Override
-    public void onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
-        if (!world.isClient() && player.isCreative() && world.getGameRules().getBoolean(GameRules.DO_TILE_DROPS) && world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse) {
+    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+        if (!world.isClientSide && player.isCreative() && world.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse) {
             ItemStack itemStack = new ItemStack(this);
             if (birdhouse.hasInhabitants()) {
-                NbtCompound nbtCompound = new NbtCompound();
+                CompoundTag nbtCompound = new CompoundTag();
 
                 nbtCompound.put(BirdhouseBlockEntity.INHABITANTS_KEY, birdhouse.getInhabitantsNbt());
-                BlockItem.setBlockEntityNbt(itemStack, WondrousWildsBlocks.BlockEntities.BIRDHOUSE, nbtCompound);
+                BlockItem.setBlockEntityData(itemStack, WondrousWildsBlocks.BlockEntities.BIRDHOUSE.get(), nbtCompound);
 
-                itemStack.setSubNbt("BlockStateTag", nbtCompound);
+                itemStack.addTagElement("BlockStateTag", nbtCompound);
 
                 ItemEntity itemEntity = new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(), itemStack);
-                itemEntity.setToDefaultPickupDelay();
-                world.spawnEntity(itemEntity);
+                itemEntity.setDefaultPickUpDelay();
+                world.addFreshEntity(itemEntity);
             }
         }
 
-        super.onBreak(world, pos, state, player);
+        super.playerWillDestroy(world, pos, state, player);
     }
 
     @Override
-    public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
-        if (state.isOf(newState.getBlock())) return;
+    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean moved) {
+        if (state.is(newState.getBlock())) return;
 
-        if (world.getBlockEntity(pos) instanceof Inventory inventory) {
-            ItemScatterer.spawn(world, pos, inventory);
-            world.updateComparators(pos, this);
+        if (world.getBlockEntity(pos) instanceof Container inventory) {
+            Containers.dropContents(world, pos, inventory);
+            world.updateNeighbourForOutputSignal(pos, this);
         }
 
-        super.onStateReplaced(state, world, pos, newState, moved);
+        super.onPlace(state, world, pos, newState, moved);
     }
 
     @Override
-    public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-        if (world.isClient()) return ActionResult.SUCCESS;
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (world.isClientSide) return InteractionResult.SUCCESS;
 
-        if (world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse) player.openHandledScreen(birdhouse);
+        if (world.getBlockEntity(pos) instanceof BirdhouseBlockEntity birdhouse) player.openMenu(birdhouse);
 
-        return ActionResult.CONSUME;
+        return InteractionResult.CONSUME;
     }
 
     @Override
-    public boolean hasComparatorOutput(BlockState state) {
+    public boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    public int getComparatorOutput(BlockState state, World world, BlockPos pos) {
-        return ScreenHandler.calculateComparatorOutput(world.getBlockEntity(pos));
+    public int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos) {
+        return AbstractContainerMenu.getRedstoneSignalFromBlockEntity(world.getBlockEntity(pos));
     }
 }

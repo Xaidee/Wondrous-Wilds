@@ -1,30 +1,31 @@
 package com.ineffa.wondrouswilds.screen;
 
 import com.ineffa.wondrouswilds.registry.WondrousWildsScreenHandlers;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
-public class BirdhouseScreenHandler extends ScreenHandler {
+public class BirdhouseScreenHandler extends AbstractContainerMenu {
 
-    private final Inventory inventory;
+    private final Container inventory;
 
-    public BirdhouseScreenHandler(int syncId, PlayerInventory playerInventory) {
-        this(syncId, playerInventory, new SimpleInventory(1));
+    public BirdhouseScreenHandler(int syncId, Inventory playerInventory) {
+        this(syncId, playerInventory, new SimpleContainer(1));
     }
 
-    public BirdhouseScreenHandler(int syncId, PlayerInventory playerInventory, Inventory inventory) {
-        super(WondrousWildsScreenHandlers.BIRDHOUSE, syncId);
+    public BirdhouseScreenHandler(int syncId, Inventory playerInventory, Container inventory) {
+        super(MenuType.GENERIC_3x3, syncId);
 
-        checkSize(inventory, 1);
+        checkContainerSize(inventory, 1);
 
         this.inventory = inventory;
 
-        inventory.onOpen(playerInventory.player);
+        inventory.startOpen(playerInventory.player);
 
         // Container inventory
         this.addSlot(new Slot(inventory, 0, 80, 35));
@@ -40,19 +41,19 @@ public class BirdhouseScreenHandler extends ScreenHandler {
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
-        return this.inventory.canPlayerUse(player);
+    public boolean stillValid(Player player) {
+        return this.inventory.stillValid(player);
     }
 
     @Override
-    public ItemStack transferSlot(PlayerEntity player, int index) {
+    public ItemStack quickMoveStack(Player player, int index) {
         return ItemStack.EMPTY;
     }
 
     @Override
-    public void close(PlayerEntity player) {
-        super.close(player);
+    public void removed(Player player) {
+        super.removed(player);
 
-        this.inventory.onClose(player);
+        this.inventory.stopOpen(player);
     }
 }

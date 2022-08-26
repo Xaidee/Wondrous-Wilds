@@ -19,8 +19,8 @@ public final class WondrousWildsNetwork {
 
     @OnlyIn(Dist.CLIENT)
     public static void registerS2CPackets() {
-        channel = NetworkRegistry.ChannelBuilder.named(WoodpeckerDrillPacket.ID)
-                .simpleChannel();
+        /*channel = NetworkRegistry.ChannelBuilder.named(WoodpeckerDrillPacket.ID)
+                .simpleChannel();*/
 
     }
 

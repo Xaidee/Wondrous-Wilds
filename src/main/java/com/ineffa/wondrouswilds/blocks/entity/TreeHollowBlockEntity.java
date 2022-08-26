@@ -1,29 +1,13 @@
 package com.ineffa.wondrouswilds.blocks.entity;
 
 import com.google.common.collect.Lists;
-import com.ineffa.wondrouswilds.blocks.TreeHollowBlock;
-import com.ineffa.wondrouswilds.entities.FlyingAndWalkingAnimalEntity;
-import com.ineffa.wondrouswilds.entities.TreeHollowNester;
 import com.ineffa.wondrouswilds.registry.WondrousWildsBlocks;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.gameevent.GameEvent;
-import net.minecraftforge.registries.ForgeRegistries;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
 
 import java.util.Iterator;
 import java.util.List;
@@ -36,11 +20,11 @@ public class TreeHollowBlockEntity extends BlockEntity implements InhabitableNes
         super(WondrousWildsBlocks.BlockEntities.TREE_HOLLOW.get(), pos, state);
     }
 
-    public static void serverTick(World world, BlockPos pos, BlockState state, TreeHollowBlockEntity treeHollow) {
+    public static void serverTick(Level world, BlockPos pos, BlockState state, TreeHollowBlockEntity treeHollow) {
         tickInhabitants(world, pos, state, treeHollow.getInhabitants());
     }
 
-    private static void tickInhabitants(World world, BlockPos pos, BlockState state, List<Inhabitant> inhabitants) {
+    private static void tickInhabitants(Level world, BlockPos pos, BlockState state, List<Inhabitant> inhabitants) {
         boolean released = false;
 
         Iterator<Inhabitant> iterator = inhabitants.iterator();
@@ -55,7 +39,7 @@ public class TreeHollowBlockEntity extends BlockEntity implements InhabitableNes
             ++inhabitant.ticksInNest;
         }
 
-        if (released) markDirty(world, pos, state);
+        if (released) setChanged(world, pos, state);
     }
 
     @Override
@@ -86,22 +70,22 @@ public class TreeHollowBlockEntity extends BlockEntity implements InhabitableNes
     }
 
     @Override
-    public World getNestWorld() {
-        return this.getWorld();
+    public Level getNestWorld() {
+        return this.getLevel();
     }
 
     @Override
     public BlockPos getNestPos() {
-        return this.getPos();
+        return this.getBlockPos();
     }
 
     @Override
     public BlockState getNestCachedState() {
-        return this.getCachedState();
+        return this.getBlockState();
     }
 
     @Override
     public void markNestDirty() {
-        this.markDirty();
+        this.setChanged();
     }
 }
